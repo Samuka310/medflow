@@ -59,3 +59,14 @@ docker compose down -v
 - O **Frontend** fica na pasta `/frontend`. Usa Node 20, Vite, React e Tailwind CSS. Para desenvolver localmente, basta entrar na pasta e rodar `npm install` seguido de `npm run dev`. Ele rodará de forma relâmpago, interceptando os tokens e passando pelo `axios` para bater na API na porta 8080.
 - O **Banco de Dados** usa *Flyway* para versionamento. Todos os esquemas de tabelas ficam documentados e controlados na pasta `backend/src/main/resources/db/migration`.
 - Os manifestos do **Kubernetes** ficam na pasta `/k8s/` e o pipeline de **CI/CD** (GitHub Actions) está em `.github/workflows/ci.yml`. Esses arquivos preparam o software para ser jogado na nuvem num ambiente multibilionário tolerante a falhas (Self-Healing e Load Balancing automático).
+
+---
+
+## ☁️ Arquitetura em Nuvem (Fase 19)
+
+Para hospedar o sistema na internet de forma 100% gratuita e com qualidade profissional, o MedFlow foi dividido em microsserviços modernos. Cada peça foi para a sua nuvem especializada:
+
+1. **Vercel (Frontend em React):** É a plataforma líder para hospedar interfaces. Ela pega o nosso código da pasta `frontend/`, compila e distribui para o mundo todo. Cada vez que fazemos um `git push` no GitHub, a Vercel atualiza o site automaticamente sem o usuário final perceber (Zero Downtime).
+2. **Render.com (Backend em Java Spring Boot):** É onde mora o "cérebro" do sistema (a pasta `backend/`). Ele baixa a nossa imagem Docker do Java, liga o servidor e fica escutando as requisições que chegam da Vercel. Se ficar ocioso, ele "dorme" para economizar custos, e acorda assim que alguém tenta marcar uma consulta.
+3. **Neon.tech (Banco de Dados PostgreSQL):** Bancos de dados tradicionais são caros na nuvem. O Neon é um "Serverless Postgres", ou seja, ele desliga quando não está sendo usado e liga em milissegundos. É lá que ficam salvos os logins, médicos e pacientes. O Render (Java) se conecta ao Neon via uma URL (`jdbc:postgresql://...`).
+4. **CloudAMQP (Mensageria RabbitMQ):** O mensageiro assíncrono. Quando uma consulta é marcada, o Render manda um bilhete para o CloudAMQP: *"Avise o médico X"*. O CloudAMQP guarda esse bilhete numa fila e processa sem travar a tela do usuário. É perfeito para sistemas de alta carga.

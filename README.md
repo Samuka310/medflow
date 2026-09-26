@@ -80,3 +80,36 @@ Ao realizar o deploy da API (por exemplo, no **Render**), as seguintes variávei
 - `SPRING_RABBITMQ_HOST`, `_USERNAME`, `_PASSWORD`, `_VIRTUAL_HOST`: Credenciais fornecidas pelo CloudAMQP.
 - `JWT_SECRET`: Uma chave forte (string longa aleatória) para criptografar os tokens de login.
 - `JWT_EXPIRATION`: O tempo de validade do token (ex: `86400000` para 24 horas).
+
+## 💻 Como continuar trabalhando de outro Computador (Do Zero)
+
+Se você for para outro computador (como o de casa) que não tem nada instalado, não se preocupe! O projeto foi desenhado para ser portátil. Veja o passo a passo para leigos:
+
+### 1. O que você precisa instalar no PC novo:
+- **Git:** Para baixar o código (https://git-scm.com/downloads)
+- **Docker Desktop:** Para rodar o banco de dados e servidores sem complicação (https://www.docker.com/products/docker-desktop)
+- **Editor de Código:** Recomendamos o VS Code, Cursor ou IntelliJ.
+
+### 2. Como baixar o projeto:
+Abra o terminal (ou Prompt de Comando) e digite:
+`ash
+git clone https://github.com/Samuka310/medflow.git
+cd medflow
+`
+
+### 3. Como rodar no PC novo:
+Como usamos Docker, você não precisa instalar Java, Node ou PostgreSQL na sua máquina. Basta digitar:
+`ash
+docker compose up -d --build
+`
+*Pronto! O sistema inteiro (Frontend, Backend, Banco e RabbitMQ) vai ligar no seu PC novo exatamente como estava no do trabalho.*
+
+### 4. A Mágica do Deploy Automático (CI/CD)
+Se você alterar qualquer código em casa e quiser atualizar o site que está no ar, basta salvar e rodar:
+`ash
+git add .
+git commit -m "sua mensagem do que mudou"
+git push
+`
+**O que acontece depois do Push?** 
+Você não precisa abrir o site da Vercel ou do Render! Eles estão "vigiando" o seu GitHub. Assim que o código novo chegar, a Vercel vai atualizar a interface visual sozinha, e o Render vai reiniciar o servidor Java sozinho. Em 2 minutos, a versão nova estará no ar para o mundo todo.

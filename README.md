@@ -70,3 +70,13 @@ Para hospedar o sistema na internet de forma 100% gratuita e com qualidade profi
 2. **Render.com (Backend em Java Spring Boot):** É onde mora o "cérebro" do sistema (a pasta `backend/`). Ele baixa a nossa imagem Docker do Java, liga o servidor e fica escutando as requisições que chegam da Vercel. Se ficar ocioso, ele "dorme" para economizar custos, e acorda assim que alguém tenta marcar uma consulta.
 3. **Neon.tech (Banco de Dados PostgreSQL):** Bancos de dados tradicionais são caros na nuvem. O Neon é um "Serverless Postgres", ou seja, ele desliga quando não está sendo usado e liga em milissegundos. É lá que ficam salvos os logins, médicos e pacientes. O Render (Java) se conecta ao Neon via uma URL (`jdbc:postgresql://...`).
 4. **CloudAMQP (Mensageria RabbitMQ):** O mensageiro assíncrono. Quando uma consulta é marcada, o Render manda um bilhete para o CloudAMQP: *"Avise o médico X"*. O CloudAMQP guarda esse bilhete numa fila e processa sem travar a tela do usuário. É perfeito para sistemas de alta carga.
+
+### Variáveis de Ambiente Necessárias em Produção
+
+Ao realizar o deploy da API (por exemplo, no **Render**), as seguintes variáveis devem ser configuradas:
+
+- `SPRING_DATASOURCE_URL`: A URL JDBC completa (ex: *jdbc:postgresql://...neon.tech/neondb...*) fornecida pelo Neon.
+- `SPRING_JPA_HIBERNATE_DDL_AUTO`: Use `update` (na primeira vez para criar as tabelas) ou `validate` (nos deploys subsequentes).
+- `SPRING_RABBITMQ_HOST`, `_USERNAME`, `_PASSWORD`, `_VIRTUAL_HOST`: Credenciais fornecidas pelo CloudAMQP.
+- `JWT_SECRET`: Uma chave forte (string longa aleatória) para criptografar os tokens de login.
+- `JWT_EXPIRATION`: O tempo de validade do token (ex: `86400000` para 24 horas).

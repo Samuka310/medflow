@@ -1,0 +1,28 @@
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    url: jdbc:postgresql://localhost:5432/medflow
+    user: medflow
+    password: medflow
+  rabbitmq:
+    host: localhost
+    port: 5672
+  datasource:
+    url: jdbc:postgresql://localhost:5432/medflow
+    username: medflow
+    password: medflow
+  jpa:
+    hibernate:
+      ddl-auto: validate
+server:
+  port: 8080
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  expiration: 86400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info

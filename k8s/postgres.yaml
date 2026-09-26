@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: medflow-db-service
+spec:
+  selector:
+    app: medflow-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: medflow-db
+spec:
+  serviceName: "medflow-db"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medflow-db
+  template:
+    metadata:
+      labels:
+        app: medflow-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "medflow"
+        - name: POSTGRES_PASSWORD
+          value: "medflow"
+        - name: POSTGRES_DB
+          value: "medflow"

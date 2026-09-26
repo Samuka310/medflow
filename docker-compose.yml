@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: medflow-db
+    environment:
+      POSTGRES_USER: medflow
+      POSTGRES_PASSWORD: medflow
+      POSTGRES_DB: medflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - medflow-postgres-data:/var/lib/postgresql/data
+    networks:
+      - medflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medflow -d medflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: medflow-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - medflow-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medflow-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/medflow
+      - SPRING_DATASOURCE_USERNAME=medflow
+      - SPRING_DATASOURCE_PASSWORD=medflow
+      - SPRING_FLYWAY_URL=jdbc:postgresql://db:5432/medflow
+      - SPRING_FLYWAY_USER=medflow
+      - SPRING_FLYWAY_PASSWORD=medflow
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medflow-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medflow-frontend
+    ports:
+      - "5173:80" # Exposed on 5173 to match the dev environment habit, internal nginx uses 80
+    depends_on:
+      - backend
+    networks:
+      - medflow-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: medflow-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - medflow-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: medflow-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    networks:
+      - medflow-network
+
+volumes:
+  medflow-postgres-data:
+
+networks:
+  medflow-network:
+    driver: bridge

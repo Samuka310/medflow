@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-ssr/
+.cache/
+.npm/
+.vite/
+*.log
+.env.local
+.env.*.local
+.idea/
+.vscode/

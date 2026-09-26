@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: medflow-backend-service
+spec:
+  selector:
+    app: medflow-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medflow-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: medflow-backend
+  template:
+    metadata:
+      labels:
+        app: medflow-backend
+    spec:
+      containers:
+      - name: medflow-backend
+        image: medflow-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://medflow-db-service:5432/medflow"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "medflow"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "medflow"
+        - name: SPRING_RABBITMQ_HOST
+          value: "medflow-rabbitmq-service"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10

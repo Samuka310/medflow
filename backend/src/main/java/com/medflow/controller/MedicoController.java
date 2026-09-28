@@ -30,9 +30,9 @@ public class MedicoController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar médicos", description = "Retorna todos os médicos cadastrados")
-    public ResponseEntity<List<MedicoDTO>> findAll() {
-        return ResponseEntity.ok(medicoService.findAll());
+    @Operation(summary = "Listar médicos", description = "Retorna todos os médicos cadastrados, opcionalmente filtrados por especialidade")
+    public ResponseEntity<List<MedicoDTO>> findAll(@RequestParam(required = false) UUID especialidade) {
+        return ResponseEntity.ok(medicoService.findAll(especialidade));
     }
 
     @GetMapping("/{id}")

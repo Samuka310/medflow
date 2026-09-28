@@ -48,7 +48,7 @@ class AuthServiceTest {
         usuario.setEmail(request.getEmail());
 
         when(usuarioRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(usuario));
-        when(jwtService.generateToken(usuario)).thenReturn("mocked-jwt-token");
+        when(jwtService.generateToken(any(java.util.Map.class), any(Usuario.class))).thenReturn("mocked-jwt-token");
 
         AuthResponse response = authService.login(request);
 

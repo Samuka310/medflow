@@ -14,9 +14,13 @@ public class Medico {
     
     private String crm;
     
-    @ManyToOne
-    @JoinColumn(name = "especialidade_id")
-    private Especialidade especialidade;
+    @ManyToMany
+    @JoinTable(
+        name = "medico_especialidade",
+        joinColumns = @JoinColumn(name = "medico_id"),
+        inverseJoinColumns = @JoinColumn(name = "especialidade_id")
+    )
+    private java.util.List<Especialidade> especialidades;
     
     @OneToOne
     @JoinColumn(name = "usuario_id")

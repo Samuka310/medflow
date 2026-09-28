@@ -12,9 +12,20 @@ public class MedicoDTO {
     @NotBlank(message = "O CRM é obrigatório")
     private String crm;
 
-    @NotNull(message = "A especialidade é obrigatória")
-    private UUID especialidadeId;
+    @jakarta.validation.constraints.NotEmpty(message = "Pelo menos uma especialidade é obrigatória")
+    private java.util.List<UUID> especialidadesIds;
 
     @NotNull(message = "O usuário é obrigatório")
     private UUID usuarioId;
+
+    // Campos de resposta para o frontend
+    private java.util.List<EspecialidadeDTO> especialidades;
+    private UsuarioResumoDTO usuario;
+
+    @Data
+    public static class UsuarioResumoDTO {
+        private UUID id;
+        private String username;
+        private String nome;
+    }
 }

@@ -27,8 +27,10 @@ public class MedicoService {
             throw new RuntimeException("Já existe um médico cadastrado com este CRM.");
         }
 
-        Especialidade especialidade = especialidadeRepository.findById(dto.getEspecialidadeId())
-                .orElseThrow(() -> new RuntimeException("Especialidade não encontrada."));
+        List<Especialidade> especialidades = especialidadeRepository.findAllById(dto.getEspecialidadesIds());
+        if (especialidades.isEmpty() || especialidades.size() != dto.getEspecialidadesIds().size()) {
+            throw new RuntimeException("Uma ou mais especialidades não foram encontradas.");
+        }
 
         Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
@@ -39,14 +41,19 @@ public class MedicoService {
 
         Medico medico = new Medico();
         medico.setCrm(dto.getCrm());
-        medico.setEspecialidade(especialidade);
+        medico.setEspecialidades(especialidades);
         medico.setUsuario(usuario);
         
         medico = medicoRepository.save(medico);
         return mapToDTO(medico);
     }
 
-    public List<MedicoDTO> findAll() {
+    public List<MedicoDTO> findAll(UUID especialidadeId) {
+        if (especialidadeId != null) {
+            return medicoRepository.findByEspecialidadesId(especialidadeId).stream()
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
         return medicoRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -69,8 +76,23 @@ public class MedicoService {
         MedicoDTO dto = new MedicoDTO();
         dto.setId(medico.getId());
         dto.setCrm(medico.getCrm());
-        dto.setEspecialidadeId(medico.getEspecialidade().getId());
+        dto.setEspecialidadesIds(medico.getEspecialidades().stream().map(Especialidade::getId).collect(Collectors.toList()));
         dto.setUsuarioId(medico.getUsuario().getId());
+        
+        dto.setEspecialidades(medico.getEspecialidades().stream().map(e -> {
+            com.medflow.dto.EspecialidadeDTO edto = new com.medflow.dto.EspecialidadeDTO();
+            edto.setId(e.getId());
+            edto.setNome(e.getNome());
+            edto.setDescricao(e.getDescricao());
+            return edto;
+        }).collect(Collectors.toList()));
+        
+        MedicoDTO.UsuarioResumoDTO usu = new MedicoDTO.UsuarioResumoDTO();
+        usu.setId(medico.getUsuario().getId());
+        usu.setUsername(medico.getUsuario().getNome()); // Frontend chama de username mas mostra o nome ou email
+        usu.setNome(medico.getUsuario().getNome());
+        dto.setUsuario(usu);
+
         return dto;
     }
 }

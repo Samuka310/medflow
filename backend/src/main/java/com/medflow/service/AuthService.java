@@ -34,7 +34,9 @@ public class AuthService {
         
         usuarioRepository.save(user);
 
-        String jwtToken = jwtService.generateToken(user);
+        java.util.Map<String, Object> extraClaims = new java.util.HashMap<>();
+        extraClaims.put("role", user.getRole());
+        String jwtToken = jwtService.generateToken(extraClaims, user);
         return AuthResponse.builder().token(jwtToken).build();
     }
 
@@ -49,7 +51,9 @@ public class AuthService {
         Usuario user = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        String jwtToken = jwtService.generateToken(user);
+        java.util.Map<String, Object> extraClaims = new java.util.HashMap<>();
+        extraClaims.put("role", user.getRole());
+        String jwtToken = jwtService.generateToken(extraClaims, user);
         return AuthResponse.builder().token(jwtToken).build();
     }
 }

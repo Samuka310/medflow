@@ -30,7 +30,8 @@ public class AuthService {
         user.setNome(request.getNome());
         user.setEmail(request.getEmail());
         user.setSenha(passwordEncoder.encode(request.getSenha()));
-        user.setRole(request.getRole());
+        user.setRole("PACIENTE"); // Segurança: registro público só cria pacientes
+
         
         usuarioRepository.save(user);
 

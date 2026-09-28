@@ -52,6 +52,18 @@ public class PacienteService {
         return mapToDTO(paciente);
     }
 
+    public com.medflow.dto.PacienteResumoDTO findResumoById(UUID id) {
+        Paciente paciente = pacienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        return mapToResumoDTO(paciente);
+    }
+
+    public com.medflow.dto.PacienteClinicoDTO findClinicoById(UUID id) {
+        Paciente paciente = pacienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        return mapToClinicoDTO(paciente);
+    }
+
     public void delete(UUID id) {
         if (!pacienteRepository.existsById(id)) {
             throw new RuntimeException("Paciente não encontrado.");
@@ -65,6 +77,27 @@ public class PacienteService {
         dto.setCpf(paciente.getCpf());
         dto.setDataNascimento(paciente.getDataNascimento());
         dto.setUsuarioId(paciente.getUsuario().getId());
+        return dto;
+    }
+
+    private com.medflow.dto.PacienteResumoDTO mapToResumoDTO(Paciente paciente) {
+        com.medflow.dto.PacienteResumoDTO dto = new com.medflow.dto.PacienteResumoDTO();
+        dto.setId(paciente.getId());
+        dto.setNome(paciente.getUsuario().getNome());
+        dto.setEmail(paciente.getUsuario().getEmail());
+        dto.setCpf(paciente.getCpf());
+        dto.setDataNascimento(paciente.getDataNascimento());
+        return dto;
+    }
+
+    private com.medflow.dto.PacienteClinicoDTO mapToClinicoDTO(Paciente paciente) {
+        com.medflow.dto.PacienteClinicoDTO dto = new com.medflow.dto.PacienteClinicoDTO();
+        dto.setId(paciente.getId());
+        dto.setNome(paciente.getUsuario().getNome());
+        dto.setEmail(paciente.getUsuario().getEmail());
+        dto.setCpf(paciente.getCpf());
+        dto.setDataNascimento(paciente.getDataNascimento());
+        dto.setHistoricoClinicoResumo("Nenhum dado clínico disponível no momento.");
         return dto;
     }
 }

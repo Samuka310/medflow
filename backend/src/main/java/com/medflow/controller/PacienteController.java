@@ -35,12 +35,22 @@ public class PacienteController {
         return ResponseEntity.ok(pacienteService.findAll());
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Buscar paciente por ID")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','TRIAGEM','MEDICO','ADMIN','PACIENTE')")
+    @GetMapping("/{id}/resumo")
+    @Operation(summary = "Buscar resumo do paciente por ID", description = "Acesso a dados cadastrais. Permitido para Recepção, Triagem, Médico, Admin e o próprio Paciente.")
     @ApiResponse(responseCode = "200", description = "Paciente encontrado")
     @ApiResponse(responseCode = "404", description = "Paciente não encontrado")
-    public ResponseEntity<PacienteDTO> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(pacienteService.findById(id));
+    public ResponseEntity<com.medflow.dto.PacienteResumoDTO> findResumoById(@PathVariable UUID id) {
+        return ResponseEntity.ok(pacienteService.findResumoById(id));
+    }
+
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO','ADMIN','PACIENTE')")
+    @GetMapping("/{id}/clinico")
+    @Operation(summary = "Buscar dados clínicos do paciente por ID", description = "Acesso a dados clínicos. Permitido para Médico, Admin e o próprio Paciente.")
+    @ApiResponse(responseCode = "200", description = "Paciente encontrado")
+    @ApiResponse(responseCode = "404", description = "Paciente não encontrado")
+    public ResponseEntity<com.medflow.dto.PacienteClinicoDTO> findClinicoById(@PathVariable UUID id) {
+        return ResponseEntity.ok(pacienteService.findClinicoById(id));
     }
 
     @DeleteMapping("/{id}")

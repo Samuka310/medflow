@@ -29,6 +29,7 @@ public class PacienteController {
         return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.create(dto));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','TRIAGEM','MEDICO','ADMIN')")
     @GetMapping
     @Operation(summary = "Listar pacientes", description = "Retorna todos os pacientes cadastrados")
     public ResponseEntity<List<PacienteDTO>> findAll() {

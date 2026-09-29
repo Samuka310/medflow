@@ -18,6 +18,7 @@ public class PacienteService {
 
     private final PacienteRepository pacienteRepository;
     private final UsuarioRepository usuarioRepository;
+    private final com.medflow.repository.ConsultaRepository consultaRepository;
 
     public PacienteDTO create(PacienteDTO dto) {
         if (pacienteRepository.findByCpf(dto.getCpf()).isPresent()) {
@@ -55,12 +56,41 @@ public class PacienteService {
     public com.medflow.dto.PacienteResumoDTO findResumoById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            String email = auth.getName();
+            if (isPaciente && !paciente.getUsuario().getEmail().equals(email)) {
+                throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode ver seu próprio resumo.");
+            }
+        }
+        
         return mapToResumoDTO(paciente);
     }
 
     public com.medflow.dto.PacienteClinicoDTO findClinicoById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isMedico = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_MEDICO"));
+            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            String email = auth.getName();
+            
+            if (isMedico) {
+                boolean temConsulta = consultaRepository.existsByPacienteIdAndMedicoUsuarioEmail(id, email);
+                if (!temConsulta) {
+                    throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode ver prontuários de pacientes que possuem consulta com você.");
+                }
+            } else if (isPaciente) {
+                if (!paciente.getUsuario().getEmail().equals(email)) {
+                    throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode acessar seu próprio prontuário.");
+                }
+            }
+        }
+
         return mapToClinicoDTO(paciente);
     }
 

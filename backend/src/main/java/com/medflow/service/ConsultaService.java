@@ -266,6 +266,11 @@ public class ConsultaService {
         dto.setPacienteId(consulta.getPaciente().getId());
         dto.setDataHora(consulta.getDataHora());
         dto.setStatus(consulta.getStatus());
+        
+        pagamentoRepository.findByConsultaId(consulta.getId()).ifPresent(p -> {
+            dto.setPagamentoId(p.getId());
+        });
+        
         return dto;
     }
 }

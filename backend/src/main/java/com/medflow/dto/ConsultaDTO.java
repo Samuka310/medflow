@@ -21,4 +21,5 @@ public class ConsultaDTO {
     private LocalDateTime dataHora;
 
     private String status;
+    private UUID pagamentoId;
 }

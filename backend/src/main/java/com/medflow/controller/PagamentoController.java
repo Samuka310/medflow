@@ -19,6 +19,7 @@ public class PagamentoController {
 
     private final PagamentoService pagamentoService;
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('FATURAMENTO','ADMIN','RECEPCIONISTA')")
     @PostMapping("/{id}/pagar")
     @Operation(summary = "Registrar pagamento", description = "Marca o pagamento como PAGO")
     @ApiResponse(responseCode = "200", description = "Pagamento realizado")
@@ -26,6 +27,7 @@ public class PagamentoController {
         return ResponseEntity.ok(pagamentoService.pagar(id));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('FATURAMENTO','ADMIN')")
     @PostMapping("/{id}/estornar")
     @Operation(summary = "Estornar pagamento", description = "Estorna o pagamento, voltando para PENDENTE")
     @ApiResponse(responseCode = "200", description = "Pagamento estornado")
@@ -33,6 +35,7 @@ public class PagamentoController {
         return ResponseEntity.ok(pagamentoService.estornar(id));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('FATURAMENTO','ADMIN','RECEPCIONISTA','PACIENTE')")
     @GetMapping("/{id}")
     @Operation(summary = "Buscar pagamento por ID")
     @ApiResponse(responseCode = "200", description = "Pagamento encontrado")

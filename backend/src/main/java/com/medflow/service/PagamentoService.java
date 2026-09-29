@@ -41,8 +41,18 @@ public class PagamentoService {
     }
 
     public PagamentoDTO findById(UUID id) {
-        return pagamentoRepository.findById(id).map(this::mapToDTO)
+        Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            if (isPaciente && !pagamento.getConsulta().getPaciente().getUsuario().getEmail().equals(auth.getName())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode ver seus próprios pagamentos.");
+            }
+        }
+        
+        return mapToDTO(pagamento);
     }
 
     private PagamentoDTO mapToDTO(Pagamento pagamento) {

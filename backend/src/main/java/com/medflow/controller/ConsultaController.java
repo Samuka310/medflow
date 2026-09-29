@@ -59,4 +59,11 @@ public class ConsultaController {
         consultaService.cancelar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO','ADMIN')")
+    @GetMapping("/agenda-hoje")
+    @Operation(summary = "Agenda do dia", description = "Retorna as consultas do dia para o médico logado, ordenadas por prioridade de triagem")
+    public ResponseEntity<List<ConsultaDTO>> agendaHoje() {
+        return ResponseEntity.ok(consultaService.agendaHoje());
+    }
 }

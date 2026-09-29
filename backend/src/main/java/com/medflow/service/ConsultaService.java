@@ -29,6 +29,7 @@ public class ConsultaService {
     private final PacienteRepository pacienteRepository;
     private final PagamentoRepository pagamentoRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final com.medflow.repository.TriagemRepository triagemRepository;
 
     public ConsultaDTO agendar(ConsultaDTO dto) {
         if (dto.getDataHora().isBefore(LocalDateTime.now().plusMinutes(30))) {
@@ -129,6 +130,40 @@ public class ConsultaService {
         return consultaRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    public List<ConsultaDTO> agendaHoje() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Medico medico = medicoRepository.findByUsuarioEmail(email)
+                .orElseThrow(() -> new RuntimeException("Médico não encontrado pelo usuário logado."));
+        
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+        
+        List<Consulta> consultas = consultaRepository.findByMedicoIdAndDataHoraBetween(medico.getId(), startOfDay, endOfDay);
+        
+        consultas.sort((c1, c2) -> {
+            int p1 = getPriorityWeight(c1.getId());
+            int p2 = getPriorityWeight(c2.getId());
+            if (p1 != p2) {
+                return Integer.compare(p2, p1); // Descending priority
+            }
+            return c1.getDataHora().compareTo(c2.getDataHora());
+        });
+
+        return consultas.stream().map(this::mapToDTO).collect(Collectors.toList());
+    }
+
+    private int getPriorityWeight(UUID consultaId) {
+        return triagemRepository.findByConsultaId(consultaId)
+            .map(t -> switch (t.getPrioridade()) {
+                case "EMERGENCIA" -> 4;
+                case "ALTA" -> 3;
+                case "MEDIA" -> 2;
+                case "BAIXA" -> 1;
+                default -> 0;
+            }).orElse(0);
     }
 
     private ConsultaDTO mapToDTO(Consulta consulta) {

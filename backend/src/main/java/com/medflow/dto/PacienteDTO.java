@@ -16,6 +16,10 @@ public class PacienteDTO {
     @NotNull(message = "A data de nascimento é obrigatória")
     private LocalDate dataNascimento;
 
-    @NotNull(message = "O usuário é obrigatório")
     private UUID usuarioId;
+
+    // Campos opcionais para quando a recepção cadastra um paciente do zero
+    private String nome;
+    private String email;
+    private String senha;
 }

@@ -42,6 +42,14 @@ public class ConsultaService {
         Paciente paciente = pacienteRepository.findById(dto.getPacienteId())
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
 
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            if (isPacienteLogado && !paciente.getUsuario().getEmail().equals(auth.getName())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode agendar consultas para si mesmo.");
+            }
+        }
+
         LocalDateTime inicio = dto.getDataHora().minusMinutes(59);
         LocalDateTime fim = dto.getDataHora().plusMinutes(59);
 
@@ -75,10 +83,59 @@ public class ConsultaService {
         return mapToDTO(consulta);
     }
 
+    public ConsultaDTO remarcar(UUID id, LocalDateTime novaDataHora) {
+        if (novaDataHora.isBefore(LocalDateTime.now().plusMinutes(30))) {
+            throw new RuntimeException("A remarcação deve ser feita com no mínimo 30 minutos de antecedência.");
+        }
+
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
+
+        if (!"AGENDADA".equals(consulta.getStatus())) {
+            throw new RuntimeException("Somente consultas AGENDADAS podem ser remarcadas.");
+        }
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode remarcar suas próprias consultas.");
+            }
+        }
+
+        LocalDateTime inicio = novaDataHora.minusMinutes(59);
+        LocalDateTime fim = novaDataHora.plusMinutes(59);
+
+        if (consultaRepository.existsByMedicoIdAndDataHoraBetween(consulta.getMedico().getId(), inicio, fim)) {
+            throw new RuntimeException("O médico já possui uma consulta neste horário.");
+        }
+
+        if (consultaRepository.existsByPacienteIdAndDataHoraBetween(consulta.getPaciente().getId(), inicio, fim)) {
+            throw new RuntimeException("O paciente já possui uma consulta neste horário.");
+        }
+
+        consulta.setDataHora(novaDataHora);
+        consulta = consultaRepository.save(consulta);
+
+        String mensagem = String.format("Consulta REMARCADA para paciente %s com médico(a) para o dia %s", 
+            consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+
+        return mapToDTO(consulta);
+    }
+
     public void confirmar(UUID id) {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode confirmar suas próprias consultas.");
+            }
+        }
+
         if (!"AGENDADA".equals(consulta.getStatus())) {
             throw new RuntimeException("Somente consultas AGENDADAS podem ser confirmadas.");
         }
@@ -91,10 +148,34 @@ public class ConsultaService {
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
     }
 
+    public void checkin(UUID id) {
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
+        
+        if ("CANCELADA".equals(consulta.getStatus()) || "REALIZADA".equals(consulta.getStatus())) {
+            throw new RuntimeException("Status inválido para check-in.");
+        }
+        
+        consulta.setStatus("AGUARDANDO_TRIAGEM"); // O paciente chegou e aguarda triagem
+        consultaRepository.save(consulta);
+
+        String mensagem = String.format("Paciente %s realizou check-in para a consulta.", 
+            consulta.getPaciente().getUsuario().getNome());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+    }
+
     public void cancelar(UUID id) {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
+            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode cancelar suas próprias consultas.");
+            }
+        }
+
         if (consulta.getDataHora().isBefore(LocalDateTime.now().plusHours(2))) {
             throw new RuntimeException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
         }
@@ -130,6 +211,18 @@ public class ConsultaService {
         return consultaRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    public List<ConsultaDTO> hoje() {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+        
+        List<Consulta> consultas = consultaRepository.findByDataHoraBetween(startOfDay, endOfDay);
+        
+        // Retornar ordenado pelo horário
+        consultas.sort((c1, c2) -> c1.getDataHora().compareTo(c2.getDataHora()));
+        
+        return consultas.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
     public List<ConsultaDTO> agendaHoje() {

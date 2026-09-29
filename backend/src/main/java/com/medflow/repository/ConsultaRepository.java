@@ -10,6 +10,7 @@ import java.util.List;
 public interface ConsultaRepository extends JpaRepository<Consulta, UUID> {
     List<Consulta> findByMedicoIdAndDataHoraBetween(UUID medicoId, LocalDateTime start, LocalDateTime end);
     boolean existsByMedicoIdAndDataHoraBetween(UUID medicoId, LocalDateTime start, LocalDateTime end);
+    List<Consulta> findByDataHoraBetween(LocalDateTime start, LocalDateTime end);
     boolean existsByPacienteIdAndDataHoraBetween(UUID pacienteId, LocalDateTime start, LocalDateTime end);
     boolean existsByPacienteIdAndMedicoUsuarioEmail(UUID pacienteId, String email);
 }

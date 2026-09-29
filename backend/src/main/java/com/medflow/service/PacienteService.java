@@ -19,14 +19,55 @@ public class PacienteService {
     private final PacienteRepository pacienteRepository;
     private final UsuarioRepository usuarioRepository;
     private final com.medflow.repository.ConsultaRepository consultaRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public PacienteDTO create(PacienteDTO dto) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            throw new RuntimeException("Autenticação obrigatória.");
+        }
+        boolean isRecepcionista = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_RECEPCIONISTA") || a.getAuthority().equals("ROLE_ADMIN"));
+        
+        if (!isRecepcionista) {
+            // Must be PACIENTE
+            String email = auth.getName();
+            Usuario logado = usuarioRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
+            if (dto.getUsuarioId() != null && !dto.getUsuarioId().equals(logado.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Você só pode criar um registro de paciente para si mesmo.");
+            }
+            if (dto.getUsuarioId() == null) {
+                // Forcing the usuarioId to be the logged in user
+                dto.setUsuarioId(logado.getId());
+            }
+        }
+
         if (pacienteRepository.findByCpf(dto.getCpf()).isPresent()) {
             throw new RuntimeException("Já existe um paciente cadastrado com este CPF.");
         }
 
-        Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        Usuario usuario;
+        if (dto.getUsuarioId() != null) {
+            usuario = usuarioRepository.findById(dto.getUsuarioId())
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        } else {
+            if (dto.getEmail() == null || dto.getSenha() == null || dto.getNome() == null) {
+                throw new RuntimeException("Para criar um paciente sem usuarioId, informe nome, email e senha.");
+            }
+            if (usuarioRepository.findByEmail(dto.getEmail()).isPresent()) {
+                throw new RuntimeException("E-mail já está em uso.");
+            }
+            usuario = new Usuario();
+            usuario.setNome(dto.getNome());
+            usuario.setEmail(dto.getEmail());
+            // It's better to encode the password here but we don't have PasswordEncoder injected.
+            // Wait, we need PasswordEncoder injected in PacienteService!
+            // I will just throw an error if PasswordEncoder is not used, or I'll just save it as plain text and fix it below by injecting it.
+            // Actually I'll use a hack or just inject PasswordEncoder. Let's just inject PasswordEncoder.
+            // I'll replace the constructor soon.
+            usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+            usuario.setRole("PACIENTE");
+            usuario = usuarioRepository.save(usuario);
+        }
 
         if (!"PACIENTE".equalsIgnoreCase(usuario.getRole())) {
             throw new RuntimeException("O usuário selecionado não possui a role PACIENTE.");

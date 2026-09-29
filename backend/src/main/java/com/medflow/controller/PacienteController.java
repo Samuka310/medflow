@@ -22,6 +22,7 @@ public class PacienteController {
 
     private final PacienteService pacienteService;
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PACIENTE','RECEPCIONISTA','ADMIN')")
     @PostMapping
     @Operation(summary = "Cadastrar paciente", description = "Cria um novo registro de paciente")
     @ApiResponse(responseCode = "201", description = "Paciente cadastrado com sucesso")

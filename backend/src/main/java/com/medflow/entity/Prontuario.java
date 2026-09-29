@@ -16,5 +16,14 @@ public class Prontuario {
     @JoinColumn(name = "consulta_id")
     private Consulta consulta;
     
+    @Column(name = "diagnostico_cid")
+    private String diagnosticoCid;
+    
+    @Column(name = "evolucao_clinica")
+    private String evolucaoClinica;
+    
+    @Column(name = "conduta_medica")
+    private String condutaMedica;
+    
     private String observacoes;
 }

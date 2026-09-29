@@ -20,6 +20,10 @@ public class PacienteService {
     private final UsuarioRepository usuarioRepository;
     private final com.medflow.repository.ConsultaRepository consultaRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final com.medflow.repository.ReceitaRepository receitaRepository;
+    private final com.medflow.repository.AtestadoRepository atestadoRepository;
+    private final com.medflow.repository.ProntuarioRepository prontuarioRepository;
+    private final com.medflow.repository.MedicoRepository medicoRepository;
 
     public PacienteDTO create(PacienteDTO dto) {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -161,6 +165,63 @@ public class PacienteService {
         return dto;
     }
 
+    public com.medflow.dto.ReceitaDTO prescreverReceita(UUID pacienteId, com.medflow.dto.ReceitaDTO dto) {
+        Paciente paciente = pacienteRepository.findById(pacienteId)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        com.medflow.entity.Medico medico = medicoRepository.findByUsuarioEmail(email)
+                .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
+
+        com.medflow.entity.Receita receita = new com.medflow.entity.Receita();
+        receita.setPaciente(paciente);
+        receita.setMedico(medico);
+        if (dto.getConsultaId() != null) {
+            com.medflow.entity.Consulta consulta = consultaRepository.findById(dto.getConsultaId()).orElse(null);
+            receita.setConsulta(consulta);
+        }
+        receita.setMedicamento(dto.getMedicamento());
+        receita.setDosagem(dto.getDosagem());
+        receita.setValidadeData(dto.getValidadeData());
+        
+        receita = receitaRepository.save(receita);
+        
+        dto.setId(receita.getId());
+        dto.setPacienteId(paciente.getId());
+        dto.setMedicoId(medico.getId());
+        dto.setDataEmissao(receita.getDataEmissao());
+        return dto;
+    }
+
+    public com.medflow.dto.AtestadoDTO emitirAtestado(UUID pacienteId, com.medflow.dto.AtestadoDTO dto) {
+        Paciente paciente = pacienteRepository.findById(pacienteId)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        com.medflow.entity.Medico medico = medicoRepository.findByUsuarioEmail(email)
+                .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
+
+        com.medflow.entity.Atestado atestado = new com.medflow.entity.Atestado();
+        atestado.setPaciente(paciente);
+        atestado.setMedico(medico);
+        if (dto.getConsultaId() != null) {
+            com.medflow.entity.Consulta consulta = consultaRepository.findById(dto.getConsultaId()).orElse(null);
+            atestado.setConsulta(consulta);
+        }
+        atestado.setDiasAfastamento(dto.getDiasAfastamento());
+        atestado.setCidOpcional(dto.getCidOpcional());
+        
+        atestado = atestadoRepository.save(atestado);
+        
+        dto.setId(atestado.getId());
+        dto.setPacienteId(paciente.getId());
+        dto.setMedicoId(medico.getId());
+        dto.setDataEmissao(atestado.getDataEmissao());
+        return dto;
+    }
+
     private com.medflow.dto.PacienteClinicoDTO mapToClinicoDTO(Paciente paciente) {
         com.medflow.dto.PacienteClinicoDTO dto = new com.medflow.dto.PacienteClinicoDTO();
         dto.setId(paciente.getId());
@@ -168,7 +229,47 @@ public class PacienteService {
         dto.setEmail(paciente.getUsuario().getEmail());
         dto.setCpf(paciente.getCpf());
         dto.setDataNascimento(paciente.getDataNascimento());
-        dto.setHistoricoClinicoResumo("Nenhum dado clínico disponível no momento.");
+        dto.setHistoricoClinicoResumo("Dados clínicos completos.");
+        
+        List<com.medflow.dto.ReceitaDTO> receitas = receitaRepository.findByPacienteId(paciente.getId()).stream().map(r -> {
+            com.medflow.dto.ReceitaDTO rDto = new com.medflow.dto.ReceitaDTO();
+            rDto.setId(r.getId());
+            rDto.setPacienteId(r.getPaciente().getId());
+            rDto.setMedicoId(r.getMedico().getId());
+            if(r.getConsulta() != null) rDto.setConsultaId(r.getConsulta().getId());
+            rDto.setMedicamento(r.getMedicamento());
+            rDto.setDosagem(r.getDosagem());
+            rDto.setValidadeData(r.getValidadeData());
+            rDto.setDataEmissao(r.getDataEmissao());
+            return rDto;
+        }).collect(Collectors.toList());
+        dto.setReceitas(receitas);
+
+        List<com.medflow.dto.AtestadoDTO> atestados = atestadoRepository.findByPacienteId(paciente.getId()).stream().map(a -> {
+            com.medflow.dto.AtestadoDTO aDto = new com.medflow.dto.AtestadoDTO();
+            aDto.setId(a.getId());
+            aDto.setPacienteId(a.getPaciente().getId());
+            aDto.setMedicoId(a.getMedico().getId());
+            if(a.getConsulta() != null) aDto.setConsultaId(a.getConsulta().getId());
+            aDto.setDiasAfastamento(a.getDiasAfastamento());
+            aDto.setCidOpcional(a.getCidOpcional());
+            aDto.setDataEmissao(a.getDataEmissao());
+            return aDto;
+        }).collect(Collectors.toList());
+        dto.setAtestados(atestados);
+        
+        List<com.medflow.dto.ProntuarioDTO> prontuarios = prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream().map(p -> {
+            com.medflow.dto.ProntuarioDTO pDto = new com.medflow.dto.ProntuarioDTO();
+            pDto.setId(p.getId());
+            pDto.setConsultaId(p.getConsulta().getId());
+            pDto.setDiagnosticoCid(p.getDiagnosticoCid());
+            pDto.setEvolucaoClinica(p.getEvolucaoClinica());
+            pDto.setCondutaMedica(p.getCondutaMedica());
+            pDto.setObservacoes(p.getObservacoes());
+            return pDto;
+        }).collect(Collectors.toList());
+        dto.setProntuarios(prontuarios);
+
         return dto;
     }
 }

@@ -36,6 +36,9 @@ public class ProntuarioService {
                 .orElse(new Prontuario());
 
         prontuario.setConsulta(consulta);
+        prontuario.setDiagnosticoCid(dto.getDiagnosticoCid());
+        prontuario.setEvolucaoClinica(dto.getEvolucaoClinica());
+        prontuario.setCondutaMedica(dto.getCondutaMedica());
         prontuario.setObservacoes(dto.getObservacoes());
 
         prontuario = prontuarioRepository.save(prontuario);
@@ -58,8 +61,6 @@ public class ProntuarioService {
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
         } else if ("MEDICO".equalsIgnoreCase(usuario.getRole())) {
-            // Médico vê todos os prontuários? Ou de seus pacientes?
-            // Para simplificar, vou retornar tudo, ou apenas permitir que o paciente veja o seu.
             return prontuarioRepository.findAll().stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
@@ -89,6 +90,9 @@ public class ProntuarioService {
         ProntuarioDTO dto = new ProntuarioDTO();
         dto.setId(prontuario.getId());
         dto.setConsultaId(prontuario.getConsulta().getId());
+        dto.setDiagnosticoCid(prontuario.getDiagnosticoCid());
+        dto.setEvolucaoClinica(prontuario.getEvolucaoClinica());
+        dto.setCondutaMedica(prontuario.getCondutaMedica());
         dto.setObservacoes(prontuario.getObservacoes());
         return dto;
     }

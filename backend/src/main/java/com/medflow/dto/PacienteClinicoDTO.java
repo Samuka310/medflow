@@ -11,4 +11,7 @@ public class PacienteClinicoDTO extends PacienteResumoDTO {
     // Futuros relacionamentos (historico, alergias, prontuarios, condicoes) serao adicionados aqui.
     private String historicoClinicoResumo = "Sem histórico clínico registrado ainda.";
     
+    private java.util.List<ReceitaDTO> receitas;
+    private java.util.List<AtestadoDTO> atestados;
+    private java.util.List<ProntuarioDTO> prontuarios;
 }

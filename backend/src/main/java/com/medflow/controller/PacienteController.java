@@ -62,4 +62,18 @@ public class PacienteController {
         pacienteService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO')")
+    @PostMapping("/{id}/receitas")
+    @Operation(summary = "Prescrever receita", description = "Médico emite receita para o paciente")
+    public ResponseEntity<com.medflow.dto.ReceitaDTO> prescreverReceita(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.ReceitaDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.prescreverReceita(id, dto));
+    }
+
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO')")
+    @PostMapping("/{id}/atestados")
+    @Operation(summary = "Emitir atestado", description = "Médico emite atestado para o paciente")
+    public ResponseEntity<com.medflow.dto.AtestadoDTO> emitirAtestado(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.AtestadoDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.emitirAtestado(id, dto));
+    }
 }

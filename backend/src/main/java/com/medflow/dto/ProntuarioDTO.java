@@ -13,6 +13,13 @@ public class ProntuarioDTO {
     @NotNull(message = "A consulta é obrigatória")
     private UUID consultaId;
     
-    @NotBlank(message = "As observações são obrigatórias")
+    private String diagnosticoCid;
+    
+    @NotBlank(message = "A evolução clínica é obrigatória")
+    private String evolucaoClinica;
+    
+    @NotBlank(message = "A conduta médica é obrigatória")
+    private String condutaMedica;
+    
     private String observacoes;
 }

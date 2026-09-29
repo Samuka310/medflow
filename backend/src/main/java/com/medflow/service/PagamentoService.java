@@ -13,6 +13,7 @@ import java.util.UUID;
 public class PagamentoService {
 
     private final PagamentoRepository pagamentoRepository;
+    private final AuditoriaService auditoriaService;
 
     public PagamentoDTO pagar(UUID id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
@@ -24,6 +25,7 @@ public class PagamentoService {
 
         pagamento.setStatus("PAGO");
         pagamento = pagamentoRepository.save(pagamento);
+        auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
     }
 
@@ -37,6 +39,7 @@ public class PagamentoService {
 
         pagamento.setStatus("ESTORNADO");
         pagamento = pagamentoRepository.save(pagamento);
+        auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
     }
 
@@ -52,6 +55,7 @@ public class PagamentoService {
             }
         }
         
+        auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
     }
 

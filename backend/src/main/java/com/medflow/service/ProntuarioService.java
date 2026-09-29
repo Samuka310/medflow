@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class ProntuarioService {
 
     private final ProntuarioRepository prontuarioRepository;
+    private final AuditoriaService auditoriaService;
     private final ConsultaRepository consultaRepository;
     private final UsuarioRepository usuarioRepository;
     private final PacienteRepository pacienteRepository;
@@ -42,6 +43,7 @@ public class ProntuarioService {
         prontuario.setObservacoes(dto.getObservacoes());
 
         prontuario = prontuarioRepository.save(prontuario);
+        auditoriaService.registrarAcao("SALVAR_PRONTUARIO", "Prontuario", prontuario.getId(), "Prontuario modificado pelo medico");
         return mapToDTO(prontuario);
     }
 
@@ -83,6 +85,7 @@ public class ProntuarioService {
             }
         }
         
+        auditoriaService.registrarAcao("SALVAR_PRONTUARIO", "Prontuario", prontuario.getId(), "Prontuario modificado pelo medico");
         return mapToDTO(prontuario);
     }
 

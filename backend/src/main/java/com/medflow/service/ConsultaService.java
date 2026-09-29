@@ -30,6 +30,7 @@ public class ConsultaService {
     private final PagamentoRepository pagamentoRepository;
     private final RabbitTemplate rabbitTemplate;
     private final com.medflow.repository.TriagemRepository triagemRepository;
+    private final AuditoriaService auditoriaService;
 
     public ConsultaDTO agendar(ConsultaDTO dto) {
         if (dto.getDataHora().isBefore(LocalDateTime.now().plusMinutes(30))) {
@@ -79,6 +80,7 @@ public class ConsultaService {
         String mensagem = String.format("Consulta AGENDADA para paciente %s com médico(a) no dia %s", 
             paciente.getUsuario().getNome(), consulta.getDataHora().toString());
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
 
         return mapToDTO(consulta);
     }
@@ -120,6 +122,7 @@ public class ConsultaService {
         String mensagem = String.format("Consulta REMARCADA para paciente %s com médico(a) para o dia %s", 
             consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
 
         return mapToDTO(consulta);
     }
@@ -146,6 +149,7 @@ public class ConsultaService {
         String mensagem = String.format("Consulta CONFIRMADA para paciente %s no dia %s", 
             consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
     }
 
     public void checkin(UUID id) {
@@ -162,6 +166,7 @@ public class ConsultaService {
         String mensagem = String.format("Paciente %s realizou check-in para a consulta.", 
             consulta.getPaciente().getUsuario().getNome());
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
     }
 
     public void cancelar(UUID id) {
@@ -186,6 +191,7 @@ public class ConsultaService {
         String mensagem = String.format("Consulta CANCELADA para paciente %s no dia %s", 
             consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
         rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
+        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
     }
 
     public void realizar(UUID id) {

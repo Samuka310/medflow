@@ -21,3 +21,7 @@ frontend/.env.production.local
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Globais adicionados
+.env
+.vite/

@@ -41,6 +41,9 @@ class ConsultaServiceTest {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private ConsultaService consultaService;
 

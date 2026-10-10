@@ -21,7 +21,7 @@ public class AdminService {
     @Transactional
     public Funcionario criarFuncionario(FuncionarioRequest request) {
         if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("E-mail já está em uso.");
+            throw new com.medflow.exception.RegraDeNegocioException("E-mail já está em uso.");
         }
 
         Usuario user = new Usuario();
@@ -32,7 +32,7 @@ public class AdminService {
         // Valida e define a role baseada no cargo
         String role = request.getCargo().toUpperCase();
         if (com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.RECEPCIONISTA && com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.TRIAGEM && com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.FATURAMENTO) {
-            throw new RuntimeException("Cargo inválido. Use RECEPCIONISTA, TRIAGEM ou FATURAMENTO.");
+            throw new com.medflow.exception.RegraDeNegocioException("Cargo inválido. Use RECEPCIONISTA, TRIAGEM ou FATURAMENTO.");
         }
         user.setRole(com.medflow.entity.enums.Role.valueOf(role));
         

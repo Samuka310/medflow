@@ -28,7 +28,7 @@ public class PacienteService {
     public PacienteDTO create(PacienteDTO dto) {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) {
-            throw new RuntimeException("Autenticação obrigatória.");
+            throw new com.medflow.exception.AcessoNegadoException("Autenticação obrigatória.");
         }
         boolean isRecepcionista = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_RECEPCIONISTA") || a.getAuthority().equals("ROLE_ADMIN"));
         
@@ -46,7 +46,7 @@ public class PacienteService {
         }
 
         if (pacienteRepository.findByCpf(dto.getCpf()).isPresent()) {
-            throw new RuntimeException("Já existe um paciente cadastrado com este CPF.");
+            throw new com.medflow.exception.RegraDeNegocioException("Já existe um paciente cadastrado com este CPF.");
         }
 
         Usuario usuario;
@@ -55,10 +55,10 @@ public class PacienteService {
                     .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
         } else {
             if (dto.getEmail() == null || dto.getSenha() == null || dto.getNome() == null) {
-                throw new RuntimeException("Para criar um paciente sem usuarioId, informe nome, email e senha.");
+                throw new com.medflow.exception.RegraDeNegocioException("Para criar um paciente sem usuarioId, informe nome, email e senha.");
             }
             if (usuarioRepository.findByEmail(dto.getEmail()).isPresent()) {
-                throw new RuntimeException("E-mail já está em uso.");
+                throw new com.medflow.exception.RegraDeNegocioException("E-mail já está em uso.");
             }
             usuario = new Usuario();
             usuario.setNome(dto.getNome());
@@ -74,7 +74,7 @@ public class PacienteService {
         }
 
         if (usuario.getRole() != com.medflow.entity.enums.Role.PACIENTE) {
-            throw new RuntimeException("O usuário selecionado não possui a role PACIENTE.");
+            throw new com.medflow.exception.RegraDeNegocioException("O usuário selecionado não possui a role PACIENTE.");
         }
 
         Paciente paciente = new Paciente();
@@ -141,7 +141,7 @@ public class PacienteService {
 
     public void delete(UUID id) {
         if (!pacienteRepository.existsById(id)) {
-            throw new RuntimeException("Paciente não encontrado.");
+            throw new com.medflow.exception.RecursoNaoEncontradoException("Paciente não encontrado.");
         }
         pacienteRepository.deleteById(id);
     }

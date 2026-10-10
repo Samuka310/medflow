@@ -23,7 +23,7 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("E-mail já está em uso.");
+            throw new com.medflow.exception.RegraDeNegocioException("E-mail já está em uso.");
         }
 
         Usuario user = new Usuario();

@@ -81,7 +81,7 @@ public class ProntuarioService {
         
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
             if (!prontuario.getConsulta().getPaciente().getUsuario().getId().equals(usuario.getId())) {
-                throw new RuntimeException("Acesso negado: Este prontuário não pertence a você.");
+                throw new com.medflow.exception.AcessoNegadoException("Acesso negado: Este prontuário não pertence a você.");
             }
         }
         

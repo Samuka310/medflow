@@ -24,19 +24,19 @@ public class MedicoService {
 
     public MedicoDTO create(MedicoDTO dto) {
         if (medicoRepository.findByCrm(dto.getCrm()).isPresent()) {
-            throw new RuntimeException("Já existe um médico cadastrado com este CRM.");
+            throw new com.medflow.exception.RegraDeNegocioException("Já existe um médico cadastrado com este CRM.");
         }
 
         List<Especialidade> especialidades = especialidadeRepository.findAllById(dto.getEspecialidadesIds());
         if (especialidades.isEmpty() || especialidades.size() != dto.getEspecialidadesIds().size()) {
-            throw new RuntimeException("Uma ou mais especialidades não foram encontradas.");
+            throw new com.medflow.exception.RegraDeNegocioException("Uma ou mais especialidades não foram encontradas.");
         }
 
         Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
         if (usuario.getRole() != com.medflow.entity.enums.Role.MEDICO) {
-            throw new RuntimeException("O usuário selecionado não possui a role MEDICO.");
+            throw new com.medflow.exception.RegraDeNegocioException("O usuário selecionado não possui a role MEDICO.");
         }
 
         Medico medico = new Medico();
@@ -67,7 +67,7 @@ public class MedicoService {
 
     public void delete(UUID id) {
         if (!medicoRepository.existsById(id)) {
-            throw new RuntimeException("Médico não encontrado.");
+            throw new com.medflow.exception.RecursoNaoEncontradoException("Médico não encontrado.");
         }
         medicoRepository.deleteById(id);
     }

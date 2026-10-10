@@ -18,7 +18,7 @@ public class EspecialidadeService {
 
     public EspecialidadeDTO create(EspecialidadeDTO dto) {
         if (especialidadeRepository.findByNomeIgnoreCase(dto.getNome()).isPresent()) {
-            throw new RuntimeException("Especialidade já cadastrada com este nome.");
+            throw new com.medflow.exception.RegraDeNegocioException("Especialidade já cadastrada com este nome.");
         }
         
         Especialidade especialidade = new Especialidade();
@@ -43,7 +43,7 @@ public class EspecialidadeService {
 
     public void delete(UUID id) {
         if (!especialidadeRepository.existsById(id)) {
-            throw new RuntimeException("Especialidade não encontrada.");
+            throw new com.medflow.exception.RecursoNaoEncontradoException("Especialidade não encontrada.");
         }
         especialidadeRepository.deleteById(id);
     }

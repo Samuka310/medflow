@@ -33,11 +33,11 @@ public class TriagemService {
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
 
         if (!consulta.getPaciente().getId().equals(paciente.getId())) {
-            throw new RuntimeException("A consulta informada não pertence ao paciente informado.");
+            throw new com.medflow.exception.RegraDeNegocioException("A consulta informada não pertence ao paciente informado.");
         }
 
         if (triagemRepository.findByConsultaId(consulta.getId()).isPresent()) {
-            throw new RuntimeException("Já existe uma triagem registrada para esta consulta.");
+            throw new com.medflow.exception.RegraDeNegocioException("Já existe uma triagem registrada para esta consulta.");
         }
 
         String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();

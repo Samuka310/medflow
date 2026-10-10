@@ -1,56 +1,81 @@
 package com.medflow.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
+import java.net.URI;
+import java.time.Instant;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
-        ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.FORBIDDEN.value(),
-            "Acesso negado: " + ex.getMessage()
-        );
-        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ProblemDetail handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Recurso não encontrado");
+        pd.setType(URI.create("https://medflow.com/erros/recurso-nao-encontrado"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
-        ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            ex.getMessage()
-        );
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(RegraDeNegocioException.class)
+    public ProblemDetail handleRegraDeNegocio(RegraDeNegocioException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("Erro de regra de negócio");
+        pd.setType(URI.create("https://medflow.com/erros/regra-de-negocio"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
     }
 
-    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(org.springframework.web.bind.MethodArgumentNotValidException ex) {
+    @ExceptionHandler(ConflitoAgendaException.class)
+    public ProblemDetail handleConflitoAgenda(ConflitoAgendaException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("Conflito de agenda");
+        pd.setType(URI.create("https://medflow.com/erros/conflito-agenda"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
+
+    @ExceptionHandler({AcessoNegadoException.class, AccessDeniedException.class})
+    public ProblemDetail handleAcessoNegado(Exception ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setTitle("Acesso negado");
+        pd.setType(URI.create("https://medflow.com/erros/acesso-negado"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidationException(MethodArgumentNotValidException ex) {
         String msg = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .reduce((a, b) -> a + ", " + b).orElse("Erro de validação");
+                .collect(Collectors.joining(", "));
         
-        ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            msg
-        );
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Erros de validação encontrados.");
+        pd.setTitle("Requisição inválida");
+        pd.setType(URI.create("https://medflow.com/erros/validacao"));
+        pd.setProperty("erros", msg);
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-        ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            ex.getMessage() != null ? ex.getMessage() : "Erro interno do servidor"
-        );
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ProblemDetail handleException(Exception ex) {
+        logger.error("Erro interno do servidor", ex);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado no servidor.");
+        pd.setTitle("Erro interno");
+        pd.setType(URI.create("https://medflow.com/erros/erro-interno"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
     }
 }

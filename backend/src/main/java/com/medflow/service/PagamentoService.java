@@ -20,7 +20,7 @@ public class PagamentoService {
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
 
         if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PENDENTE) {
-            throw new RuntimeException("Apenas pagamentos pendentes podem ser pagos.");
+            throw new com.medflow.exception.RegraDeNegocioException("Apenas pagamentos pendentes podem ser pagos.");
         }
 
         pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.PAGO);
@@ -34,7 +34,7 @@ public class PagamentoService {
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
 
         if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PAGO) {
-            throw new RuntimeException("Apenas pagamentos pagos podem ser estornados.");
+            throw new com.medflow.exception.RegraDeNegocioException("Apenas pagamentos pagos podem ser estornados.");
         }
 
         pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.ESTORNADO);

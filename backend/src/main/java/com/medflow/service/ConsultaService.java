@@ -34,7 +34,7 @@ public class ConsultaService {
 
     public ConsultaDTO agendar(ConsultaDTO dto) {
         if (dto.getDataHora().isBefore(LocalDateTime.now().plusMinutes(30))) {
-            throw new RuntimeException("A consulta deve ser agendada com no mínimo 30 minutos de antecedência.");
+            throw new com.medflow.exception.RegraDeNegocioException("A consulta deve ser agendada com no mínimo 30 minutos de antecedência.");
         }
 
         Medico medico = medicoRepository.findById(dto.getMedicoId())
@@ -55,11 +55,11 @@ public class ConsultaService {
         LocalDateTime fim = dto.getDataHora().plusMinutes(59);
 
         if (consultaRepository.existsByMedicoIdAndDataHoraBetween(medico.getId(), inicio, fim)) {
-            throw new RuntimeException("O médico já possui uma consulta neste horário.");
+            throw new com.medflow.exception.ConflitoAgendaException("O médico já possui uma consulta neste horário.");
         }
 
         if (consultaRepository.existsByPacienteIdAndDataHoraBetween(paciente.getId(), inicio, fim)) {
-            throw new RuntimeException("O paciente já possui uma consulta neste horário.");
+            throw new com.medflow.exception.ConflitoAgendaException("O paciente já possui uma consulta neste horário.");
         }
 
         Consulta consulta = new Consulta();
@@ -90,14 +90,14 @@ public class ConsultaService {
 
     public ConsultaDTO remarcar(UUID id, LocalDateTime novaDataHora) {
         if (novaDataHora.isBefore(LocalDateTime.now().plusMinutes(30))) {
-            throw new RuntimeException("A remarcação deve ser feita com no mínimo 30 minutos de antecedência.");
+            throw new com.medflow.exception.RegraDeNegocioException("A remarcação deve ser feita com no mínimo 30 minutos de antecedência.");
         }
 
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
 
         if (consulta.getStatus() != com.medflow.entity.enums.ConsultaStatus.AGENDADA) {
-            throw new RuntimeException("Somente consultas AGENDADAS podem ser remarcadas.");
+            throw new com.medflow.exception.RegraDeNegocioException("Somente consultas AGENDADAS podem ser remarcadas.");
         }
 
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -112,11 +112,11 @@ public class ConsultaService {
         LocalDateTime fim = novaDataHora.plusMinutes(59);
 
         if (consultaRepository.existsByMedicoIdAndDataHoraBetween(consulta.getMedico().getId(), inicio, fim)) {
-            throw new RuntimeException("O médico já possui uma consulta neste horário.");
+            throw new com.medflow.exception.ConflitoAgendaException("O médico já possui uma consulta neste horário.");
         }
 
         if (consultaRepository.existsByPacienteIdAndDataHoraBetween(consulta.getPaciente().getId(), inicio, fim)) {
-            throw new RuntimeException("O paciente já possui uma consulta neste horário.");
+            throw new com.medflow.exception.ConflitoAgendaException("O paciente já possui uma consulta neste horário.");
         }
 
         consulta.setDataHora(novaDataHora);
@@ -143,7 +143,7 @@ public class ConsultaService {
         }
 
         if (consulta.getStatus() != com.medflow.entity.enums.ConsultaStatus.AGENDADA) {
-            throw new RuntimeException("Somente consultas AGENDADAS podem ser confirmadas.");
+            throw new com.medflow.exception.RegraDeNegocioException("Somente consultas AGENDADAS podem ser confirmadas.");
         }
         
         consulta.confirmar();
@@ -160,7 +160,7 @@ public class ConsultaService {
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
         if (consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.CANCELADA || consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.REALIZADA) {
-            throw new RuntimeException("Status inválido para check-in.");
+            throw new com.medflow.exception.RegraDeNegocioException("Status inválido para check-in.");
         }
         
         consulta.aguardarTriagem(); // O paciente chegou e aguarda triagem
@@ -185,7 +185,7 @@ public class ConsultaService {
         }
 
         if (consulta.getDataHora().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new RuntimeException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
+            throw new com.medflow.exception.RegraDeNegocioException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
         }
         
         consulta.cancelar();
@@ -202,14 +202,14 @@ public class ConsultaService {
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
         if (consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.CANCELADA) {
-            throw new RuntimeException("Não é possível realizar uma consulta cancelada.");
+            throw new com.medflow.exception.RegraDeNegocioException("Não é possível realizar uma consulta cancelada.");
         }
         
         Pagamento pagamento = pagamentoRepository.findByConsultaId(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
         
         if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PAGO) {
-            throw new RuntimeException("A consulta não pode ser realizada sem o pagamento estar PAGO.");
+            throw new com.medflow.exception.RegraDeNegocioException("A consulta não pode ser realizada sem o pagamento estar PAGO.");
         }
 
         consulta.realizar();

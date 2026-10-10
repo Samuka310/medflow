@@ -35,7 +35,7 @@ public class MedicoService {
         Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        if (!"MEDICO".equalsIgnoreCase(usuario.getRole())) {
+        if (usuario.getRole() != com.medflow.entity.enums.Role.MEDICO) {
             throw new RuntimeException("O usuário selecionado não possui a role MEDICO.");
         }
 

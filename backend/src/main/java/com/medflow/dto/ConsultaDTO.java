@@ -20,6 +20,6 @@ public class ConsultaDTO {
     @Future(message = "A consulta deve ser agendada no futuro")
     private LocalDateTime dataHora;
 
-    private String status;
+    private com.medflow.entity.enums.ConsultaStatus status;
     private UUID pagamentoId;
 }

@@ -53,7 +53,7 @@ public class ProntuarioService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        if ("PACIENTE".equalsIgnoreCase(usuario.getRole())) {
+        if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
             Paciente paciente = pacienteRepository.findAll().stream()
                     .filter(p -> p.getUsuario().getId().equals(usuario.getId()))
                     .findFirst()
@@ -62,7 +62,7 @@ public class ProntuarioService {
             return prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
-        } else if ("MEDICO".equalsIgnoreCase(usuario.getRole())) {
+        } else if (usuario.getRole() == com.medflow.entity.enums.Role.MEDICO) {
             return prontuarioRepository.findAll().stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
@@ -79,7 +79,7 @@ public class ProntuarioService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario usuario = usuarioRepository.findByEmail(email).get();
         
-        if ("PACIENTE".equalsIgnoreCase(usuario.getRole())) {
+        if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
             if (!prontuario.getConsulta().getPaciente().getUsuario().getId().equals(usuario.getId())) {
                 throw new RuntimeException("Acesso negado: Este prontuário não pertence a você.");
             }

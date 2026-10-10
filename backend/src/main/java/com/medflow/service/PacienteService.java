@@ -69,11 +69,11 @@ public class PacienteService {
             // Actually I'll use a hack or just inject PasswordEncoder. Let's just inject PasswordEncoder.
             // I'll replace the constructor soon.
             usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
-            usuario.setRole("PACIENTE");
+            usuario.setRole(com.medflow.entity.enums.Role.PACIENTE);
             usuario = usuarioRepository.save(usuario);
         }
 
-        if (!"PACIENTE".equalsIgnoreCase(usuario.getRole())) {
+        if (usuario.getRole() != com.medflow.entity.enums.Role.PACIENTE) {
             throw new RuntimeException("O usuário selecionado não possui a role PACIENTE.");
         }
 

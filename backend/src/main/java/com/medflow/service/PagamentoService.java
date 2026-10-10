@@ -19,11 +19,11 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
 
-        if (!"PENDENTE".equals(pagamento.getStatus())) {
+        if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PENDENTE) {
             throw new RuntimeException("Apenas pagamentos pendentes podem ser pagos.");
         }
 
-        pagamento.setStatus("PAGO");
+        pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.PAGO);
         pagamento = pagamentoRepository.save(pagamento);
         auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
@@ -33,11 +33,11 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
 
-        if (!"PAGO".equals(pagamento.getStatus())) {
+        if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PAGO) {
             throw new RuntimeException("Apenas pagamentos pagos podem ser estornados.");
         }
 
-        pagamento.setStatus("ESTORNADO");
+        pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.ESTORNADO);
         pagamento = pagamentoRepository.save(pagamento);
         auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);

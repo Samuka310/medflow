@@ -10,6 +10,6 @@ public class PagamentoDTO {
     private UUID id;
     private UUID consultaId;
     private BigDecimal valor;
-    private String status;
-    private String formaPagamento;
+    private com.medflow.entity.enums.PagamentoStatus status;
+    private com.medflow.entity.enums.FormaPagamento formaPagamento;
 }

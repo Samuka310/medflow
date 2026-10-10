@@ -53,7 +53,7 @@ public class TriagemService {
         triagem.setPeso(dto.getPeso());
         triagem.setAltura(dto.getAltura());
         triagem.setQueixaPrincipal(dto.getQueixaPrincipal());
-        triagem.setPrioridade(dto.getPrioridade() != null ? dto.getPrioridade() : "BAIXA");
+        triagem.setPrioridade(dto.getPrioridade() != null ? dto.getPrioridade() : com.medflow.entity.enums.PrioridadeTriagem.BAIXA);
         triagem.setDataHora(LocalDateTime.now());
 
         triagem = triagemRepository.save(triagem);

@@ -30,7 +30,7 @@ public class AuthService {
         user.setNome(request.getNome());
         user.setEmail(request.getEmail());
         user.setSenha(passwordEncoder.encode(request.getSenha()));
-        user.setRole("PACIENTE"); // Segurança: registro público só cria pacientes
+        user.setRole(com.medflow.entity.enums.Role.PACIENTE); // Segurança: registro público só cria pacientes
 
         
         usuarioRepository.save(user);

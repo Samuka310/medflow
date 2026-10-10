@@ -66,15 +66,18 @@ public class ConsultaService {
         consulta.setMedico(medico);
         consulta.setPaciente(paciente);
         consulta.setDataHora(dto.getDataHora());
-        consulta.setStatus("AGENDADA");
+        consulta.setStatus(com.medflow.entity.enums.ConsultaStatus.AGENDADA);
         
         consulta = consultaRepository.save(consulta);
 
         Pagamento pagamento = new Pagamento();
         pagamento.setConsulta(consulta);
-        pagamento.setValor(new BigDecimal("150.00")); // Valor fictício
-        pagamento.setStatus("PENDENTE");
-        pagamento.setFormaPagamento("CARTAO");
+        BigDecimal valor = (medico.getEspecialidades() == null || medico.getEspecialidades().isEmpty() || medico.getEspecialidades().get(0).getValorConsulta() == null)
+            ? new BigDecimal("150.00") 
+            : medico.getEspecialidades().get(0).getValorConsulta();
+        pagamento.setValor(valor);
+        pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.PENDENTE);
+        pagamento.setFormaPagamento(com.medflow.entity.enums.FormaPagamento.CARTAO);
         pagamentoRepository.save(pagamento);
 
         String mensagem = String.format("Consulta AGENDADA para paciente %s com médico(a) no dia %s", 
@@ -93,7 +96,7 @@ public class ConsultaService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
 
-        if (!"AGENDADA".equals(consulta.getStatus())) {
+        if (consulta.getStatus() != com.medflow.entity.enums.ConsultaStatus.AGENDADA) {
             throw new RuntimeException("Somente consultas AGENDADAS podem ser remarcadas.");
         }
 
@@ -139,11 +142,11 @@ public class ConsultaService {
             }
         }
 
-        if (!"AGENDADA".equals(consulta.getStatus())) {
+        if (consulta.getStatus() != com.medflow.entity.enums.ConsultaStatus.AGENDADA) {
             throw new RuntimeException("Somente consultas AGENDADAS podem ser confirmadas.");
         }
         
-        consulta.setStatus("CONFIRMADA");
+        consulta.confirmar();
         consultaRepository.save(consulta);
 
         String mensagem = String.format("Consulta CONFIRMADA para paciente %s no dia %s", 
@@ -156,11 +159,11 @@ public class ConsultaService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
-        if ("CANCELADA".equals(consulta.getStatus()) || "REALIZADA".equals(consulta.getStatus())) {
+        if (consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.CANCELADA || consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.REALIZADA) {
             throw new RuntimeException("Status inválido para check-in.");
         }
         
-        consulta.setStatus("AGUARDANDO_TRIAGEM"); // O paciente chegou e aguarda triagem
+        consulta.aguardarTriagem(); // O paciente chegou e aguarda triagem
         consultaRepository.save(consulta);
 
         String mensagem = String.format("Paciente %s realizou check-in para a consulta.", 
@@ -185,7 +188,7 @@ public class ConsultaService {
             throw new RuntimeException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
         }
         
-        consulta.setStatus("CANCELADA");
+        consulta.cancelar();
         consultaRepository.save(consulta);
 
         String mensagem = String.format("Consulta CANCELADA para paciente %s no dia %s", 
@@ -198,18 +201,18 @@ public class ConsultaService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
         
-        if ("CANCELADA".equals(consulta.getStatus())) {
+        if (consulta.getStatus() == com.medflow.entity.enums.ConsultaStatus.CANCELADA) {
             throw new RuntimeException("Não é possível realizar uma consulta cancelada.");
         }
         
         Pagamento pagamento = pagamentoRepository.findByConsultaId(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
         
-        if (!"PAGO".equals(pagamento.getStatus())) {
+        if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PAGO) {
             throw new RuntimeException("A consulta não pode ser realizada sem o pagamento estar PAGO.");
         }
 
-        consulta.setStatus("REALIZADA");
+        consulta.realizar();
         consultaRepository.save(consulta);
     }
 
@@ -257,10 +260,10 @@ public class ConsultaService {
     private int getPriorityWeight(UUID consultaId) {
         return triagemRepository.findByConsultaId(consultaId)
             .map(t -> switch (t.getPrioridade()) {
-                case "EMERGENCIA" -> 4;
-                case "ALTA" -> 3;
-                case "MEDIA" -> 2;
-                case "BAIXA" -> 1;
+                case EMERGENCIA -> 4;
+                case ALTA -> 3;
+                case MEDIA -> 2;
+                case BAIXA -> 1;
                 default -> 0;
             }).orElse(0);
     }

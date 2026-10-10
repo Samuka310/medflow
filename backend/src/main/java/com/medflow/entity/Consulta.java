@@ -6,6 +6,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.medflow.entity.enums.ConsultaStatus;
+
 @Data
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"medico_id", "data_hora"}))
@@ -25,5 +27,29 @@ public class Consulta {
     @Column(name = "data_hora")
     private LocalDateTime dataHora;
     
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private ConsultaStatus status;
+
+    public void confirmar() {
+        transitarPara(ConsultaStatus.CONFIRMADA);
+    }
+
+    public void aguardarTriagem() {
+        transitarPara(ConsultaStatus.AGUARDANDO_TRIAGEM);
+    }
+
+    public void realizar() {
+        transitarPara(ConsultaStatus.REALIZADA);
+    }
+
+    public void cancelar() {
+        transitarPara(ConsultaStatus.CANCELADA);
+    }
+
+    private void transitarPara(ConsultaStatus novoStatus) {
+        if (this.status != null && !this.status.podeTransitarPara(novoStatus)) {
+            throw new IllegalStateException("Não é possível transitar a consulta de " + this.status + " para " + novoStatus);
+        }
+        this.status = novoStatus;
+    }
 }

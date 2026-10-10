@@ -16,6 +16,6 @@ public class RegisterRequest {
     @NotBlank(message = "A senha é obrigatória")
     private String senha;
     
-    @NotBlank(message = "A role é obrigatória")
-    private String role;
+    @jakarta.validation.constraints.NotNull(message = "A role é obrigatória")
+    private com.medflow.entity.enums.Role role;
 }

@@ -14,4 +14,7 @@ public class Especialidade {
     
     private String nome;
     private String descricao;
+    
+    @Column(name = "valor_consulta")
+    private java.math.BigDecimal valorConsulta;
 }

@@ -86,14 +86,14 @@ class ConsultaServiceTest {
         savedConsulta.setMedico(medico);
         savedConsulta.setPaciente(paciente);
         savedConsulta.setDataHora(dto.getDataHora());
-        savedConsulta.setStatus("AGENDADA");
+        savedConsulta.setStatus(com.medflow.entity.enums.ConsultaStatus.AGENDADA);
         
         when(consultaRepository.save(any(Consulta.class))).thenReturn(savedConsulta);
 
         ConsultaDTO result = consultaService.agendar(dto);
 
         assertNotNull(result);
-        assertEquals("AGENDADA", result.getStatus());
+        assertEquals(com.medflow.entity.enums.ConsultaStatus.AGENDADA, result.getStatus());
         verify(pagamentoRepository, times(1)).save(any());
         verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString());
     }

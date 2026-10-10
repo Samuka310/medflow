@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import com.medflow.entity.enums.Role;
+
 @Data
 @Entity
 public class Usuario implements UserDetails {
@@ -23,11 +25,13 @@ public class Usuario implements UserDetails {
     private String email;
     
     private String senha;
-    private String role;
+    
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override

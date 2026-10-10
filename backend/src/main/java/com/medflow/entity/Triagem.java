@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.medflow.entity.enums.PrioridadeTriagem;
+
 @Entity
 @Table(name = "triagem")
 @Data
@@ -44,8 +46,9 @@ public class Triagem {
     @Column(name = "queixa_principal", columnDefinition = "TEXT")
     private String queixaPrincipal;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String prioridade;
+    private PrioridadeTriagem prioridade;
 
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;

@@ -31,10 +31,10 @@ public class AdminService {
         
         // Valida e define a role baseada no cargo
         String role = request.getCargo().toUpperCase();
-        if (!role.equals("RECEPCIONISTA") && !role.equals("TRIAGEM") && !role.equals("FATURAMENTO")) {
+        if (com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.RECEPCIONISTA && com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.TRIAGEM && com.medflow.entity.enums.Role.valueOf(role) != com.medflow.entity.enums.Role.FATURAMENTO) {
             throw new RuntimeException("Cargo inválido. Use RECEPCIONISTA, TRIAGEM ou FATURAMENTO.");
         }
-        user.setRole(role);
+        user.setRole(com.medflow.entity.enums.Role.valueOf(role));
         
         user = usuarioRepository.save(user);
 

@@ -35,7 +35,7 @@ public class FaturamentoService {
         for (Pagamento p : todosPagamentos) {
             LocalDateTime dataConsulta = p.getConsulta().getDataHora();
             
-            if ("PAGO".equals(p.getStatus())) {
+            if (p.getStatus() == com.medflow.entity.enums.PagamentoStatus.PAGO) {
                 recebidos++;
                 
                 if (dataConsulta != null) {
@@ -46,7 +46,7 @@ public class FaturamentoService {
                         totalMes = totalMes.add(p.getValor());
                     }
                 }
-            } else if ("PENDENTE".equals(p.getStatus())) {
+            } else if (p.getStatus() == com.medflow.entity.enums.PagamentoStatus.PENDENTE) {
                 pendentes++;
                 totalPendente = totalPendente.add(p.getValor());
             }

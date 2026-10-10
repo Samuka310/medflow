@@ -16,6 +16,6 @@ public class TriagemDTO {
     private BigDecimal peso;
     private BigDecimal altura;
     private String queixaPrincipal;
-    private String prioridade; // BAIXA, MEDIA, ALTA, EMERGENCIA
+    private com.medflow.entity.enums.PrioridadeTriagem prioridade;
     private LocalDateTime dataHora;
 }

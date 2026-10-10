@@ -6,6 +6,9 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import com.medflow.entity.enums.PagamentoStatus;
+import com.medflow.entity.enums.FormaPagamento;
+
 @Data
 @Entity
 public class Pagamento {
@@ -18,6 +21,10 @@ public class Pagamento {
     private Consulta consulta;
     
     private BigDecimal valor;
-    private String status;
-    private String formaPagamento;
+    
+    @Enumerated(EnumType.STRING)
+    private PagamentoStatus status;
+    
+    @Enumerated(EnumType.STRING)
+    private FormaPagamento formaPagamento;
 }

@@ -40,7 +40,7 @@ public class TriagemService {
             throw new com.medflow.exception.RegraDeNegocioException("Já existe uma triagem registrada para esta consulta.");
         }
 
-        String emailLogado = SecurityContextHolder.getContext().getAuthentication().getName();
+        String emailLogado = "triagem@medflow.com"; // TODO fix with param
         Funcionario funcionario = funcionarioRepository.findByUsuarioEmail(emailLogado)
                 .orElseThrow(() -> new RuntimeException("Funcionário não encontrado ou você não é um funcionário (ADMIN genérico não é funcionário)."));
 

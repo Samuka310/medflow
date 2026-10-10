@@ -22,7 +22,7 @@ public class ConsultaController {
 
     private final ConsultaService consultaService;
 
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PACIENTE','RECEPCIONISTA','ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDoPaciente(#dto.pacienteId, authentication)")
     @PostMapping
     @Operation(summary = "Agendar consulta", description = "Cria uma nova consulta e gera o pagamento pendente")
     @ApiResponse(responseCode = "201", description = "Consulta agendada com sucesso")
@@ -30,7 +30,7 @@ public class ConsultaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(consultaService.agendar(dto));
     }
 
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PACIENTE','RECEPCIONISTA','ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDaConsulta(#id, authentication)")
     @PutMapping("/{id}/remarcar")
     @Operation(summary = "Remarcar consulta", description = "Altera a data/hora de uma consulta agendada")
     @ApiResponse(responseCode = "200", description = "Consulta remarcada com sucesso")
@@ -56,7 +56,7 @@ public class ConsultaController {
         return ResponseEntity.noContent().build();
     }
 
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PACIENTE','RECEPCIONISTA','ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDaConsulta(#id, authentication)")
     @PutMapping("/{id}/confirmar")
     @Operation(summary = "Confirmar consulta", description = "Confirma uma consulta agendada")
     @ApiResponse(responseCode = "204", description = "Consulta confirmada")
@@ -65,7 +65,7 @@ public class ConsultaController {
         return ResponseEntity.noContent().build();
     }
 
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PACIENTE','RECEPCIONISTA','ADMIN')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDaConsulta(#id, authentication)")
     @PutMapping("/{id}/cancelar")
     @Operation(summary = "Cancelar consulta", description = "Cancela uma consulta agendada")
     @ApiResponse(responseCode = "204", description = "Consulta cancelada")
@@ -93,7 +93,7 @@ public class ConsultaController {
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO','ADMIN')")
     @GetMapping("/agenda-hoje")
     @Operation(summary = "Agenda do dia", description = "Retorna as consultas do dia para o médico logado, ordenadas por prioridade de triagem")
-    public ResponseEntity<List<ConsultaDTO>> agendaHoje() {
-        return ResponseEntity.ok(consultaService.agendaHoje());
+    public ResponseEntity<List<ConsultaDTO>> agendaHoje(java.security.Principal principal) {
+        return ResponseEntity.ok(consultaService.agendaHoje(principal.getName()));
     }
 }

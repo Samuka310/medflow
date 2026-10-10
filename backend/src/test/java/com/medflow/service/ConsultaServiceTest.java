@@ -13,7 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
+import com.medflow.event.ConsultaEvento;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -39,10 +40,9 @@ class ConsultaServiceTest {
     private PagamentoRepository pagamentoRepository;
     
     @Mock
-    private RabbitTemplate rabbitTemplate;
+    private ApplicationEventPublisher applicationEventPublisher;
 
-    @Mock
-    private AuditoriaService auditoriaService;
+    
 
     @InjectMocks
     private ConsultaService consultaService;
@@ -95,6 +95,6 @@ class ConsultaServiceTest {
         assertNotNull(result);
         assertEquals(com.medflow.entity.enums.ConsultaStatus.AGENDADA, result.getStatus());
         verify(pagamentoRepository, times(1)).save(any());
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString());
+        verify(applicationEventPublisher, times(1)).publishEvent(any(ConsultaEvento.class));
     }
 }

@@ -26,8 +26,9 @@ public class PacienteController {
     @PostMapping
     @Operation(summary = "Cadastrar paciente", description = "Cria um novo registro de paciente")
     @ApiResponse(responseCode = "201", description = "Paciente cadastrado com sucesso")
-    public ResponseEntity<PacienteDTO> create(@Valid @RequestBody PacienteDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.create(dto));
+    public ResponseEntity<PacienteDTO> create(@Valid @RequestBody PacienteDTO dto, org.springframework.security.core.Authentication auth) {
+        boolean isRecepcionista = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_RECEPCIONISTA") || a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.create(dto, auth.getName(), isRecepcionista));
     }
 
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('RECEPCIONISTA','TRIAGEM','MEDICO','ADMIN')")
@@ -66,14 +67,14 @@ public class PacienteController {
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO')")
     @PostMapping("/{id}/receitas")
     @Operation(summary = "Prescrever receita", description = "Médico emite receita para o paciente")
-    public ResponseEntity<com.medflow.dto.ReceitaDTO> prescreverReceita(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.ReceitaDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.prescreverReceita(id, dto));
+    public ResponseEntity<com.medflow.dto.ReceitaDTO> prescreverReceita(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.ReceitaDTO dto, java.security.Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.prescreverReceita(id, dto, principal.getName()));
     }
 
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('MEDICO')")
     @PostMapping("/{id}/atestados")
     @Operation(summary = "Emitir atestado", description = "Médico emite atestado para o paciente")
-    public ResponseEntity<com.medflow.dto.AtestadoDTO> emitirAtestado(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.AtestadoDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.emitirAtestado(id, dto));
+    public ResponseEntity<com.medflow.dto.AtestadoDTO> emitirAtestado(@PathVariable UUID id, @Valid @RequestBody com.medflow.dto.AtestadoDTO dto, java.security.Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.emitirAtestado(id, dto, principal.getName()));
     }
 }

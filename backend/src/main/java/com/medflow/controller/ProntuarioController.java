@@ -31,15 +31,15 @@ public class ProntuarioController {
 
     @GetMapping("/me")
     @Operation(summary = "Meu histórico", description = "Retorna o histórico de prontuários do paciente logado")
-    public ResponseEntity<List<ProntuarioDTO>> findMyHistorico() {
-        return ResponseEntity.ok(prontuarioService.findMyHistorico());
+    public ResponseEntity<List<ProntuarioDTO>> findMyHistorico(java.security.Principal principal) {
+        return ResponseEntity.ok(prontuarioService.findMyHistorico(principal.getName()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar prontuário por ID")
     @ApiResponse(responseCode = "200", description = "Prontuário encontrado")
     @ApiResponse(responseCode = "404", description = "Prontuário não encontrado")
-    public ResponseEntity<ProntuarioDTO> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(prontuarioService.findById(id));
+    public ResponseEntity<ProntuarioDTO> findById(@PathVariable UUID id, java.security.Principal principal) {
+        return ResponseEntity.ok(prontuarioService.findById(id, principal.getName()));
     }
 }

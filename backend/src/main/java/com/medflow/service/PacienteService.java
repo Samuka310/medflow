@@ -25,16 +25,10 @@ public class PacienteService {
     private final com.medflow.repository.ProntuarioRepository prontuarioRepository;
     private final com.medflow.repository.MedicoRepository medicoRepository;
 
-    public PacienteDTO create(PacienteDTO dto) {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
-            throw new com.medflow.exception.AcessoNegadoException("Autenticação obrigatória.");
-        }
-        boolean isRecepcionista = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_RECEPCIONISTA") || a.getAuthority().equals("ROLE_ADMIN"));
-        
+    public PacienteDTO create(PacienteDTO dto, String emailLogado, boolean isRecepcionista) {
         if (!isRecepcionista) {
             // Must be PACIENTE
-            String email = auth.getName();
+            String email = emailLogado;
             Usuario logado = usuarioRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Usuário logado não encontrado"));
             if (dto.getUsuarioId() != null && !dto.getUsuarioId().equals(logado.getId())) {
                 throw new org.springframework.security.access.AccessDeniedException("Você só pode criar um registro de paciente para si mesmo.");
@@ -101,16 +95,6 @@ public class PacienteService {
     public com.medflow.dto.PacienteResumoDTO findResumoById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
-        
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            String email = auth.getName();
-            if (isPaciente && !paciente.getUsuario().getEmail().equals(email)) {
-                throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode ver seu próprio resumo.");
-            }
-        }
-        
         return mapToResumoDTO(paciente);
     }
 
@@ -118,23 +102,6 @@ public class PacienteService {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
         
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isMedico = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_MEDICO"));
-            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            String email = auth.getName();
-            
-            if (isMedico) {
-                boolean temConsulta = consultaRepository.existsByPacienteIdAndMedicoUsuarioEmail(id, email);
-                if (!temConsulta) {
-                    throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode ver prontuários de pacientes que possuem consulta com você.");
-                }
-            } else if (isPaciente) {
-                if (!paciente.getUsuario().getEmail().equals(email)) {
-                    throw new org.springframework.security.access.AccessDeniedException("Acesso restrito: você só pode acessar seu próprio prontuário.");
-                }
-            }
-        }
 
         return mapToClinicoDTO(paciente);
     }
@@ -165,12 +132,12 @@ public class PacienteService {
         return dto;
     }
 
-    public com.medflow.dto.ReceitaDTO prescreverReceita(UUID pacienteId, com.medflow.dto.ReceitaDTO dto) {
+    public com.medflow.dto.ReceitaDTO prescreverReceita(UUID pacienteId, com.medflow.dto.ReceitaDTO dto, String emailLogado) {
         Paciente paciente = pacienteRepository.findById(pacienteId)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
         
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+        
+        String email = emailLogado;
         com.medflow.entity.Medico medico = medicoRepository.findByUsuarioEmail(email)
                 .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
 
@@ -194,12 +161,12 @@ public class PacienteService {
         return dto;
     }
 
-    public com.medflow.dto.AtestadoDTO emitirAtestado(UUID pacienteId, com.medflow.dto.AtestadoDTO dto) {
+    public com.medflow.dto.AtestadoDTO emitirAtestado(UUID pacienteId, com.medflow.dto.AtestadoDTO dto, String emailLogado) {
         Paciente paciente = pacienteRepository.findById(pacienteId)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
         
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+        
+        String email = emailLogado;
         com.medflow.entity.Medico medico = medicoRepository.findByUsuarioEmail(email)
                 .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
 

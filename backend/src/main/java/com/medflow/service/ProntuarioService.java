@@ -11,7 +11,7 @@ import com.medflow.repository.ProntuarioRepository;
 import com.medflow.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -48,8 +48,7 @@ public class ProntuarioService {
     }
 
     @PreAuthorize("hasAnyRole('MEDICO', 'PACIENTE')")
-    public List<ProntuarioDTO> findMyHistorico() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    public List<ProntuarioDTO> findMyHistorico(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
@@ -72,11 +71,10 @@ public class ProntuarioService {
     }
     
     @PreAuthorize("hasAnyRole('MEDICO', 'PACIENTE')")
-    public ProntuarioDTO findById(UUID id) {
+    public ProntuarioDTO findById(UUID id, String email) {
         Prontuario prontuario = prontuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Prontuário não encontrado."));
                 
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario usuario = usuarioRepository.findByEmail(email).get();
         
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {

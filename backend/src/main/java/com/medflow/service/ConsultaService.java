@@ -1,6 +1,6 @@
 package com.medflow.service;
 
-import com.medflow.config.RabbitMQConfig;
+
 import com.medflow.dto.ConsultaDTO;
 import com.medflow.entity.Consulta;
 import com.medflow.entity.Medico;
@@ -11,7 +11,9 @@ import com.medflow.repository.MedicoRepository;
 import com.medflow.repository.PacienteRepository;
 import com.medflow.repository.PagamentoRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
+import com.medflow.event.ConsultaEvento;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -28,9 +30,9 @@ public class ConsultaService {
     private final MedicoRepository medicoRepository;
     private final PacienteRepository pacienteRepository;
     private final PagamentoRepository pagamentoRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final com.medflow.repository.TriagemRepository triagemRepository;
-    private final AuditoriaService auditoriaService;
+    
 
     public ConsultaDTO agendar(ConsultaDTO dto) {
         if (dto.getDataHora().isBefore(LocalDateTime.now().plusMinutes(30))) {
@@ -38,18 +40,10 @@ public class ConsultaService {
         }
 
         Medico medico = medicoRepository.findById(dto.getMedicoId())
-                .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Médico não encontrado."));
 
         Paciente paciente = pacienteRepository.findById(dto.getPacienteId())
-                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
-
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            if (isPacienteLogado && !paciente.getUsuario().getEmail().equals(auth.getName())) {
-                throw new org.springframework.security.access.AccessDeniedException("Você só pode agendar consultas para si mesmo.");
-            }
-        }
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Paciente não encontrado."));
 
         LocalDateTime inicio = dto.getDataHora().minusMinutes(59);
         LocalDateTime fim = dto.getDataHora().plusMinutes(59);
@@ -80,10 +74,7 @@ public class ConsultaService {
         pagamento.setFormaPagamento(com.medflow.entity.enums.FormaPagamento.CARTAO);
         pagamentoRepository.save(pagamento);
 
-        String mensagem = String.format("Consulta AGENDADA para paciente %s com médico(a) no dia %s", 
-            paciente.getUsuario().getNome(), consulta.getDataHora().toString());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
-        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
+        applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
 
         return mapToDTO(consulta);
     }
@@ -100,14 +91,6 @@ public class ConsultaService {
             throw new com.medflow.exception.RegraDeNegocioException("Somente consultas AGENDADAS podem ser remarcadas.");
         }
 
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
-                throw new org.springframework.security.access.AccessDeniedException("Você só pode remarcar suas próprias consultas.");
-            }
-        }
-
         LocalDateTime inicio = novaDataHora.minusMinutes(59);
         LocalDateTime fim = novaDataHora.plusMinutes(59);
 
@@ -122,25 +105,14 @@ public class ConsultaService {
         consulta.setDataHora(novaDataHora);
         consulta = consultaRepository.save(consulta);
 
-        String mensagem = String.format("Consulta REMARCADA para paciente %s com médico(a) para o dia %s", 
-            consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
-        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
+        applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
 
         return mapToDTO(consulta);
     }
 
     public void confirmar(UUID id) {
         Consulta consulta = consultaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
-        
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
-                throw new org.springframework.security.access.AccessDeniedException("Você só pode confirmar suas próprias consultas.");
-            }
-        }
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Consulta não encontrada."));
 
         if (consulta.getStatus() != com.medflow.entity.enums.ConsultaStatus.AGENDADA) {
             throw new com.medflow.exception.RegraDeNegocioException("Somente consultas AGENDADAS podem ser confirmadas.");
@@ -149,10 +121,7 @@ public class ConsultaService {
         consulta.confirmar();
         consultaRepository.save(consulta);
 
-        String mensagem = String.format("Consulta CONFIRMADA para paciente %s no dia %s", 
-            consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
-        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
+        applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
     }
 
     public void checkin(UUID id) {
@@ -166,23 +135,12 @@ public class ConsultaService {
         consulta.aguardarTriagem(); // O paciente chegou e aguarda triagem
         consultaRepository.save(consulta);
 
-        String mensagem = String.format("Paciente %s realizou check-in para a consulta.", 
-            consulta.getPaciente().getUsuario().getNome());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
-        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
+        applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
     }
 
     public void cancelar(UUID id) {
         Consulta consulta = consultaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Consulta não encontrada."));
-        
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPacienteLogado = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            if (isPacienteLogado && !consulta.getPaciente().getUsuario().getEmail().equals(auth.getName())) {
-                throw new org.springframework.security.access.AccessDeniedException("Você só pode cancelar suas próprias consultas.");
-            }
-        }
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Consulta não encontrada."));
 
         if (consulta.getDataHora().isBefore(LocalDateTime.now().plusHours(2))) {
             throw new com.medflow.exception.RegraDeNegocioException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
@@ -191,10 +149,7 @@ public class ConsultaService {
         consulta.cancelar();
         consultaRepository.save(consulta);
 
-        String mensagem = String.format("Consulta CANCELADA para paciente %s no dia %s", 
-            consulta.getPaciente().getUsuario().getNome(), consulta.getDataHora().toString());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_NOTIFICACOES, mensagem);
-        auditoriaService.registrarAcao("EVENTO_CONSULTA", "Consulta", consulta.getId(), "Operacao de consulta: " + consulta.getStatus());
+        applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
     }
 
     public void realizar(UUID id) {
@@ -234,9 +189,7 @@ public class ConsultaService {
         return consultas.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
-    public List<ConsultaDTO> agendaHoje() {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+    public List<ConsultaDTO> agendaHoje(String email) {
         Medico medico = medicoRepository.findByUsuarioEmail(email)
                 .orElseThrow(() -> new RuntimeException("Médico não encontrado pelo usuário logado."));
         

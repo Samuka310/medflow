@@ -2,42 +2,49 @@ package com.medflow.service;
 
 import com.medflow.dto.PagamentoDTO;
 import com.medflow.entity.Pagamento;
+import com.medflow.entity.enums.PagamentoStatus;
+import com.medflow.exception.RecursoNaoEncontradoException;
+import com.medflow.exception.RegraDeNegocioException;
 import com.medflow.repository.PagamentoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PagamentoService {
 
     private final PagamentoRepository pagamentoRepository;
     private final AuditoriaService auditoriaService;
 
+    @Transactional
     public PagamentoDTO pagar(UUID id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pagamento não encontrado."));
 
-        if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PENDENTE) {
-            throw new com.medflow.exception.RegraDeNegocioException("Apenas pagamentos pendentes podem ser pagos.");
+        if (pagamento.getStatus() != PagamentoStatus.PENDENTE) {
+            throw new RegraDeNegocioException("Apenas pagamentos pendentes podem ser pagos.");
         }
 
-        pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.PAGO);
+        pagamento.setStatus(PagamentoStatus.PAGO);
         pagamento = pagamentoRepository.save(pagamento);
         auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
     }
 
+    @Transactional
     public PagamentoDTO estornar(UUID id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pagamento não encontrado."));
 
-        if (pagamento.getStatus() != com.medflow.entity.enums.PagamentoStatus.PAGO) {
-            throw new com.medflow.exception.RegraDeNegocioException("Apenas pagamentos pagos podem ser estornados.");
+        if (pagamento.getStatus() != PagamentoStatus.PAGO) {
+            throw new RegraDeNegocioException("Apenas pagamentos pagos podem ser estornados.");
         }
 
-        pagamento.setStatus(com.medflow.entity.enums.PagamentoStatus.ESTORNADO);
+        pagamento.setStatus(PagamentoStatus.ESTORNADO);
         pagamento = pagamentoRepository.save(pagamento);
         auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
@@ -45,16 +52,8 @@ public class PagamentoService {
 
     public PagamentoDTO findById(UUID id) {
         Pagamento pagamento = pagamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pagamento não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pagamento não encontrado."));
 
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            boolean isPaciente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PACIENTE"));
-            if (isPaciente && !pagamento.getConsulta().getPaciente().getUsuario().getEmail().equals(auth.getName())) {
-                throw new org.springframework.security.access.AccessDeniedException("Você só pode ver seus próprios pagamentos.");
-            }
-        }
-        
         auditoriaService.registrarAcao("EVENTO_PAGAMENTO", "Pagamento", pagamento.getId(), "Operacao: " + pagamento.getStatus());
         return mapToDTO(pagamento);
     }

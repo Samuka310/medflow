@@ -26,3 +26,9 @@ management:
     web:
       exposure:
         include: health,prometheus,info
+
+medflow:
+  consulta:
+    duracao-minutos: 60
+    valor-padrao: 150.00
+

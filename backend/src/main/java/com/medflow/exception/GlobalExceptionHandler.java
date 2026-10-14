@@ -69,6 +69,16 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        logger.warn("Violação de integridade de dados/chave única detectada: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Conflito de integridade de dados: registro duplicado ou horário já ocupado.");
+        pd.setTitle("Conflito de integridade de dados");
+        pd.setType(URI.create("https://medflow.com/erros/conflito-agenda"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleException(Exception ex) {
         logger.error("Erro interno do servidor", ex);

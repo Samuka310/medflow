@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:5173"
+              - "http://localhost:3000"
+              - "https://medflow.vercel.app"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        - id: notification-service-route
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/notificacoes/**
+        - id: medflow-core-route
+          uri: ${MEDFLOW_CORE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/**
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway

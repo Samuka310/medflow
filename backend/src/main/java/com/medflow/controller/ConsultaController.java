@@ -30,6 +30,7 @@ public class ConsultaController {
 
     private final ConsultaService consultaService;
     private final RelatorioExportService relatorioExportService;
+    private final com.medflow.client.NotificationFeignClient notificationFeignClient;
 
     @PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDoPaciente(#dto.pacienteId, authentication)")
     @PostMapping
@@ -63,6 +64,13 @@ public class ConsultaController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"relatorio-consultas.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(relatorioExportService.exportarConsultasCsv());
+    }
+
+    @PreAuthorize("hasAnyRole('RECEPCIONISTA','ADMIN') or @acessoSecurity.donoDaConsulta(#id, authentication)")
+    @GetMapping("/{id}/notificacoes")
+    @Operation(summary = "Consultar histórico de notificações via microsserviço", description = "Chama notification-service via OpenFeign com proteção de Circuit Breaker / Fallback do Resilience4j")
+    public ResponseEntity<com.medflow.dto.NotificationPageResponse> buscarNotificacoesDaConsulta(@PathVariable UUID id) {
+        return ResponseEntity.ok(notificationFeignClient.buscarNotificacoes(id));
     }
 
     @PreAuthorize("hasAnyRole('MEDICO','ADMIN')")

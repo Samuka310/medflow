@@ -2,7 +2,17 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'medflow-backend'
+  - job_name: 'medflow-core'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['backend:8080']
+      - targets: ['backend:8081']
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8082']

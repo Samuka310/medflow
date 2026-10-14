@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:16
@@ -42,27 +41,63 @@ services:
       start_period: 30s
 
   backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: medflow-backend
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - SERVER_PORT=8081
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/medflow
       - SPRING_DATASOURCE_USERNAME=medflow
       - SPRING_DATASOURCE_PASSWORD=medflow
       - SPRING_FLYWAY_URL=jdbc:postgresql://db:5432/medflow
       - SPRING_FLYWAY_USER=medflow
       - SPRING_FLYWAY_PASSWORD=medflow
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - SPRING_RABBITMQ_HOST=rabbitmq
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8082
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - medflow-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: medflow-notification-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - medflow-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: medflow-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - MEDFLOW_CORE_URL=http://backend:8081
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8082
+    depends_on:
+      - backend
+      - notification-service
     networks:
       - medflow-network
 
@@ -72,9 +107,9 @@ services:
       dockerfile: Dockerfile
     container_name: medflow-frontend
     ports:
-      - "5173:80" # Exposed on 5173 to match the dev environment habit, internal nginx uses 80
+      - "5173:80"
     depends_on:
-      - backend
+      - api-gateway
     networks:
       - medflow-network
 

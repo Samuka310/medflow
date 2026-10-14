@@ -7,8 +7,8 @@ spec:
     app: medflow-backend
   ports:
     - protocol: TCP
-      port: 8080
-      targetPort: 8080
+      port: 8081
+      targetPort: 8081
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -30,10 +30,12 @@ spec:
         image: medflow-backend:latest
         imagePullPolicy: Never
         ports:
-        - containerPort: 8080
+        - containerPort: 8081
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
+        - name: SERVER_PORT
+          value: "8081"
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:postgresql://medflow-db-service:5432/medflow"
         - name: SPRING_DATASOURCE_USERNAME
@@ -45,6 +47,6 @@ spec:
         readinessProbe:
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8081
           initialDelaySeconds: 15
           periodSeconds: 10

@@ -1,6 +1,27 @@
 # Changelog
 
-## [Unreleased]
+### Fase 7 - Microsserviços Reais com Spring Cloud
+- **Estrutura Multi-Module Maven**:
+  - `medflow-aggregator` (POM raiz) orquestrando `libs/medflow-events`, `services/notification-service`, `services/api-gateway` e `backend` (`medflow-backend`).
+  - Biblioteca comum compartilhada `libs/medflow-events` contendo o contrato imutável `ConsultaEvento`.
+- **Spring Cloud API Gateway (`services/api-gateway`)**:
+  - Gateway de borda na porta 8080 roteando dinamicamente `/api/notificacoes/**` para `notification-service:8082` e `/api/**` para `backend:8081`.
+  - `CorrelationIdFilter`: injeção e propagação de cabeçalho `X-Request-Id` para rastreabilidade distribuída.
+  - `JwtAuthGlobalFilter`: validação JWT edge com tratamento de tokens ausentes/inválidos e resposta HTTP 401 padronizada.
+  - Centralização de políticas de CORS para o frontend (portas 5173/3000 e domínio Vercel).
+- **Microsserviço de Notificações Autônomo (`services/notification-service`)**:
+  - Aplicação independente consumindo assincronamente a fila `fila.notificacoes` do RabbitMQ.
+  - Persistência e auditoria de disparos de notificação na entidade `NotificacaoHistorico`.
+  - Endpoint REST paginado `GET /api/notificacoes` para consultas por `consultaId` ou paciente.
+- **Comunicação Inter-serviços Resiliente (OpenFeign + Resilience4j)**:
+  - Integração síncrona declarativa no `backend` com `NotificationFeignClient`.
+  - Fallback defensivo com `NotificationClientFallback` sob indisponibilidade ou timeout do serviço de notificações.
+  - Endpoint `GET /api/consultas/{id}/notificacoes` no `ConsultaController`.
+- **Orquestração e Observabilidade**:
+  - `docker-compose.yml` e manifestos `k8s/` (`api-gateway.yaml`, `notification-service.yaml`, `backend.yaml`) padronizados com `validate` no DDL do Hibernate.
+  - Prometheus configurado com jobs para Gateway, Core e Notification Service.
+  - Documentação em `docs/ARCHITECTURE.md` e decisão arquitetural em `docs/decisions/ADR-005-Spring-Cloud-Microsservicos.md`.
+
 ### Fase 6 - Padrões de Projeto Aplicados e Documentados (OOP)
 - **Strategy Pattern**:
   - Implementação da interface `PoliticaCancelamentoStrategy` e das estratégias concretas `ReembolsoIntegralStrategy` (> 24h: 100%), `ReembolsoParcialTaxaStrategy` (2h a 24h: 80%) e `SemReembolsoBloqueadoStrategy` (< 2h: bloqueado).

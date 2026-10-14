@@ -1,39 +1,43 @@
 # Changelog
 
 ## [Unreleased]
+### Fase 5 - I/O e Integrações de Arquivo (Java I/O)
+- **Importação em Lote via CSV**:
+  - Implementação do serviço `ImportacaoCsvService` utilizando `BufferedReader`, `InputStreamReader` e `StandardCharsets.UTF_8` com `try-with-resources`.
+  - Processamento em streaming linha a linha com validação de dados cadastrais (CRM, CPF, formato de datas, e-mail) e relatório granular de erros (`ImportacaoResultadoDTO` contendo `LinhaErroDTO`).
+  - Endpoints multipart: `POST /api/medicos/importar-csv` e `POST /api/pacientes/importar-csv`.
+- **Exportação de Relatórios CSV em Streaming**:
+  - Implementação do serviço `RelatorioExportService` utilizando `StreamingResponseBody` para envio dos dados em chunks diretamente na resposta HTTP sem sobrecarregar a memória heap.
+  - Inclusão do Byte Order Mark (BOM `\uFEFF`) para compatibilidade nativa com acentuação no Microsoft Excel.
+  - Endpoints: `GET /api/consultas/relatorio-csv` e `GET /api/faturamento/relatorio-csv`.
+- **Geração de Documentos Médicos em PDF**:
+  - Integração da biblioteca OpenPDF 2.0.3 para emissão profissional de documentos com cabeçalho institucional, dados do médico/paciente e linha de assinatura.
+  - Implementação do serviço `DocumentoPdfService`.
+  - Endpoints: `GET /api/pacientes/receitas/{id}/pdf` e `GET /api/pacientes/atestados/{id}/pdf`.
+- **Amostras e Documentação**:
+  - Criação de arquivos de exemplo em `docs/samples/` (`medicos_valido.csv`, `pacientes_valido.csv`, `medicos_malformado.csv`, `pacientes_malformado.csv`).
+  - Registro da decisão de arquitetura em `docs/decisions/ADR-003-Estrategia-de-IO-CSV-e-PDF.md`.
+  - Criação do documento `docs/JAVA_CORE.md` mapeando todas as evidências de Java Core (I/O, Concorrência, Streams, Generics, Records, Exceções).
+  - Testes unitários cobrindo todos os fluxos válidos e malformados (`ImportacaoCsvServiceTest`, `DocumentoPdfServiceTest`, `RelatorioExportServiceTest`).
+
 ### Fase 4 - Concorrência e Integridade do Agendamento
-- **Alinhamento da regra de negócio com o banco de dados**:
-  - Implementação da classe de configuração `ConsultaProperties` (`medflow.consulta.duracao-minutos` e `medflow.consulta.valor-padrao`), substituindo durações e valores fixos no código.
-  - Criação da migration Flyway `V9__alinhamento_concorrencia_consulta.sql`: remoção da antiga constraint `uk_medico_data_hora` e criação do índice único parcial `uk_medico_data_hora_ativa` no PostgreSQL com cláusula `WHERE (status != 'CANCELADA')`, permitindo reutilização imediata de horários desmarcados.
-- **Bloqueio Pessimista (`Pessimistic Write Lock`)**:
-  - Adição de `findByIdWithLock(medicoId)` com `@Lock(LockModeType.PESSIMISTIC_WRITE)` em `MedicoRepository` para serializar agendamentos simultâneos para o mesmo médico.
-  - Queries customizadas de checagem de sobreposição de intervalo (`existsConflitoMedico` e `existsConflitoPaciente`) considerando a duração configurada da consulta e ignorando consultas canceladas.
-- **Transacionalidade e Contrato de Erro**:
-  - Anotação explícita de métodos de escrita com `@Transactional` em `ConsultaService` e `PagamentoService`.
-  - Tratamento de `DataIntegrityViolationException` no `GlobalExceptionHandler` convertendo colisões em `409 Conflict` (RFC 7807 `ProblemDetail`).
-- **Idempotência no Consumo de Mensagens**:
-  - Adição de identificador único `eventoId` no contrato `ConsultaEvento`.
-  - Implementação de filtro de idempotência em 2 níveis (Cache L1 em memória + persistência L2 em `evento_processado`) no `NotificacaoListener`.
-- **Testes e Documentação**:
-  - Teste automatizado multithread `ConsultaConcurrencyTest` (10 threads simultâneas disputando o mesmo horário com 1 sucesso e 9 conflitos 409).
-  - Teste de idempotência `NotificacaoListenerTest`.
-  - Registro de decisão técnica em `docs/decisions/ADR-002-Concorrencia-e-Integridade-Agendamento.md`.
-  - Detalhamento arquitetural e diagrama de sequência em `docs/ARCHITECTURE.md`.
+- Alinhamento da regra de negócio com o banco de dados (Duração dinâmica de consultas via `ConsultaProperties` e índice único parcial no PostgreSQL `uk_medico_data_hora_ativa`).
+- Bloqueio pessimista (`Pessimistic Write Lock`) no médico para serializar agendamentos simultâneos e eliminar *race conditions*.
+- Tratamento de `DataIntegrityViolationException` no `GlobalExceptionHandler` convertendo em `409 Conflict`.
+- Idempotência no consumo de mensagens assíncronas no `NotificacaoListener` com cache L1 e persistência L2.
+- Teste multithread com `ExecutorService` (`ConsultaConcurrencyTest`) e registro do `ADR-002`.
 
 ### Fase 3 - Camada de Serviço Limpa (Streams, Lambdas, Optional, Collections)
-- Extração da regra de autorização 'paciente só acessa o que é seu' para um componente de segurança (`AcessoSecurity`), removendo o acoplamento do `SecurityContextHolder` e transferindo validações para as anotações `@PreAuthorize`.
-- Refatoração profunda do `ConsultaService`, removendo as dependências de envio direto de mensagens via `RabbitTemplate`.
-- Implementação de comunicação via Eventos de Domínio (`ConsultaEvento`) e publicação via `ApplicationEventPublisher`.
-- Criação do ouvinte (`DomainEventListener`) executado após a confirmação da transação do banco (`@TransactionalEventListener(phase = AFTER_COMMIT)`), garantindo que mensagens só sejam publicadas no RabbitMQ se a transação do banco for bem sucedida.
-- Ajuste e limpeza de Serviços secundários (`PacienteService`, `ProntuarioService`, `PagamentoService`) para adequar as assinaturas aos novos padrões.
+- Extração de autorizações para `AcessoSecurity` e anotações `@PreAuthorize`.
+- Desacoplamento da mensageria via Eventos de Domínio (`ConsultaEvento`) e `@TransactionalEventListener(phase = AFTER_COMMIT)`.
 
 ### Fase 2 - Exceções, Validação e Contrato de Erro (RFC 7807)
-- Criação da hierarquia de exceções de domínio selada (`MedflowException` -> 404, 409, 422, 403).
-- Resposta de erros padronizada via RFC 7807 `ProblemDetail`.
+- Hierarquia de exceções de domínio selada (`MedflowException` -> 404, 409, 422, 403).
+- Respostas de erro no formato RFC 7807 `ProblemDetail`.
 
 ### Fase 1 - Modelo de Domínio Forte (OOP + Generics + Enums)
-- Substituição de strings mágicas por enums ricos com máquina de estados (`ConsultaStatus`, `PagamentoStatus`, etc.).
-- Value objects e paginação genérica.
+- Remoção de Magic Strings e criação de enums com máquina de estados.
+- Value objects e tipos genéricos.
 
 ### Fase 0 - Higiene do Repositório
 - Limpeza da raiz, configuração de `.gitignore`, criação de `docs/` e `LICENSE`.

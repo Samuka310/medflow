@@ -1,0 +1,5 @@
+nome,email,cpf,dataNascimento
+Paciente Valido,paciente.valido@email.com,98765432100,1995-04-10
+Paciente Sem Data,sem.data@email.com,98765432101,
+Paciente CPF Curto,cpf.curto@email.com,12345,1990-01-01
+Paciente Data Invalida,data.invalida@email.com,98765432102,99/99/9999

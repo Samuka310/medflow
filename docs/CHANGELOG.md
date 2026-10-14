@@ -1,5 +1,18 @@
 # Changelog
 
+### Fase 8 - Documentação Técnica da API (OpenAPI, Swagger, Postman e docs/API.md)
+- **Padronização OpenAPI / Swagger**:
+  - Enriquecimento de `OpenApiConfig` com múltiplos servidores (Gateway 8080 e Core 8081), esquema de segurança `bearerAuth` detalhado e licença MIT.
+  - Documentação OpenAPI exaustiva em todos os 12 controllers do sistema (`@Tag`, `@Operation`, `@ApiResponse` com schemas tipados para 200, 201, 204, 400, 401, 403, 404, 409 e 422 com `ProblemDetail`).
+- **Postman Collection & Environment (`docs/postman/`)**:
+  - Criação de `MedFlow.postman_collection.json` com 10 pastas temáticas cobrindo todos os fluxos e endpoints do sistema.
+  - Criação de `MedFlow.postman_environment.json` com variáveis de ambiente (`baseUrl`, `coreUrl`, `token`, IDs) e scripts de teste para captura automática do token JWT no login.
+- **Manual Completo da API (`docs/API.md`)**:
+  - Matriz de todos os endpoints agrupados por módulo, com método, path, descrição e roles necessárias.
+  - Exemplos completos de requisições e respostas de sucesso e formato de erro RFC 7807 (`ProblemDetail`).
+  - Diagrama Mermaid de sequência ilustrando o ciclo de vida clínico ponta a ponta (Login → Médico → Paciente → Consulta → Pagamento → Check-in → Triagem → Prontuário → Realização → PDF).
+  - Guia passo a passo de autenticação e utilização no Swagger UI e Postman.
+
 ### Fase 7 - Microsserviços Reais com Spring Cloud
 - **Estrutura Multi-Module Maven**:
   - `medflow-aggregator` (POM raiz) orquestrando `libs/medflow-events`, `services/notification-service`, `services/api-gateway` e `backend` (`medflow-backend`).

@@ -2,6 +2,9 @@ package com.medflow.service;
 
 import com.medflow.entity.EventoProcessado;
 import com.medflow.event.ConsultaEvento;
+import com.medflow.factory.notificacao.NotificadorCanal;
+import com.medflow.factory.notificacao.NotificadorFactory;
+import com.medflow.factory.notificacao.TipoCanalNotificacao;
 import com.medflow.repository.EventoProcessadoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,11 +26,18 @@ class NotificacaoListenerTest {
     @Mock
     private EventoProcessadoRepository eventoProcessadoRepository;
 
+    @Mock
+    private NotificadorFactory notificadorFactory;
+
+    @Mock
+    private NotificadorCanal notificadorCanal;
+
     @InjectMocks
     private NotificacaoListener notificacaoListener;
 
     @BeforeEach
     void setUp() {
+        lenient().when(notificadorFactory.obterNotificador(any(TipoCanalNotificacao.class))).thenReturn(notificadorCanal);
     }
 
     @Test
@@ -42,6 +52,7 @@ class NotificacaoListenerTest {
 
         assertTrue(processado);
         verify(eventoProcessadoRepository, times(1)).save(any(EventoProcessado.class));
+        verify(notificadorCanal, times(1)).enviar(evento);
     }
 
     @Test
@@ -69,7 +80,6 @@ class NotificacaoListenerTest {
         UUID consultaId = UUID.randomUUID();
         ConsultaEvento evento = new ConsultaEvento(eventoId, consultaId, "EVENTO_CONSULTA", Instant.now(), "Consulta cancelada");
 
-        // Simula que o banco já possui o registro persistido por outra réplica/instância
         when(eventoProcessadoRepository.existsById(eventoId)).thenReturn(true);
 
         boolean processado = notificacaoListener.receberNotificacao(evento);

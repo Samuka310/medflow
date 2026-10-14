@@ -57,6 +57,9 @@ class ConsultaConcurrencyTest {
     @Mock
     private ConsultaProperties consultaProperties;
 
+    @Mock
+    private com.medflow.strategy.cancelamento.PoliticaCancelamentoContext politicaCancelamentoContext;
+
     @InjectMocks
     private ConsultaService consultaService;
 

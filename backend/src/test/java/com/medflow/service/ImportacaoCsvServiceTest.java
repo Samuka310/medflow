@@ -9,10 +9,12 @@ import com.medflow.repository.EspecialidadeRepository;
 import com.medflow.repository.MedicoRepository;
 import com.medflow.repository.PacienteRepository;
 import com.medflow.repository.UsuarioRepository;
+import com.medflow.template.csv.MedicoCsvImportador;
+import com.medflow.template.csv.PacienteCsvImportador;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,11 +46,20 @@ class ImportacaoCsvServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
     private ImportacaoCsvService importacaoCsvService;
 
+    @BeforeEach
+    void setUp() {
+        MedicoCsvImportador medicoImportador = new MedicoCsvImportador(
+                medicoRepository, usuarioRepository, especialidadeRepository, passwordEncoder);
+        PacienteCsvImportador pacienteImportador = new PacienteCsvImportador(
+                pacienteRepository, usuarioRepository, passwordEncoder);
+
+        importacaoCsvService = new ImportacaoCsvService(medicoImportador, pacienteImportador);
+    }
+
     @Test
-    @DisplayName("Importação de médicos com CSV válido deve ter 100% de sucesso")
+    @DisplayName("Importação de médicos com CSV válido deve ter 100% de sucesso via Template Method")
     void testImportarMedicosCsvValido() {
         String csv = """
                 nome,email,crm,especialidade
@@ -96,11 +107,11 @@ class ImportacaoCsvServiceTest {
         assertEquals(1, resultado.processadasComSucesso());
         assertEquals(2, resultado.totalFalhas());
         assertEquals(2, resultado.erros().size());
-        assertEquals(3, resultado.erros().get(0).linha()); // Linha 3 (1-indexed considerando cabeçalho na linha 1)
+        assertEquals(3, resultado.erros().get(0).linha());
     }
 
     @Test
-    @DisplayName("Importação de pacientes com CSV válido")
+    @DisplayName("Importação de pacientes com CSV válido via Template Method")
     void testImportarPacientesCsvValido() {
         String csv = """
                 nome,email,cpf,dataNascimento

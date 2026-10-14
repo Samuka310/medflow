@@ -22,4 +22,6 @@ public class ConsultaDTO {
 
     private com.medflow.entity.enums.ConsultaStatus status;
     private UUID pagamentoId;
+    private String medicoNome;
+    private String pacienteNome;
 }

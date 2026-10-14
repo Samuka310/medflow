@@ -254,7 +254,15 @@ public class ConsultaService {
         ConsultaDTO dto = new ConsultaDTO();
         dto.setId(consulta.getId());
         dto.setMedicoId(consulta.getMedico().getId());
+        if (consulta.getMedico().getUsuario() != null) {
+            String nome = consulta.getMedico().getUsuario().getNome();
+            dto.setMedicoNome(nome != null && !nome.isBlank() ? nome : consulta.getMedico().getUsuario().getUsername());
+        }
         dto.setPacienteId(consulta.getPaciente().getId());
+        if (consulta.getPaciente().getUsuario() != null) {
+            String nome = consulta.getPaciente().getUsuario().getNome();
+            dto.setPacienteNome(nome != null && !nome.isBlank() ? nome : consulta.getPaciente().getUsuario().getUsername());
+        }
         dto.setDataHora(consulta.getDataHora());
         dto.setStatus(consulta.getStatus());
 

@@ -80,6 +80,17 @@ public class PacienteController {
         return ResponseEntity.ok(pacienteService.findAll());
     }
 
+    @PreAuthorize("hasRole('PACIENTE')")
+    @GetMapping("/me")
+    @Operation(summary = "Dados cadastrais do paciente logado", description = "Retorna os dados cadastrais do paciente autenticado")
+    @ApiResponse(responseCode = "200", description = "Paciente logado encontrado com sucesso",
+            content = @Content(schema = @Schema(implementation = PacienteResumoDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Registro de paciente não encontrado para este usuário",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<PacienteResumoDTO> findMe(Principal principal) {
+        return ResponseEntity.ok(pacienteService.findMe(principal.getName()));
+    }
+
     @PreAuthorize("hasAnyRole('RECEPCIONISTA','TRIAGEM','MEDICO','ADMIN','PACIENTE')")
     @GetMapping("/{id}/resumo")
     @Operation(summary = "Buscar resumo do paciente por ID", description = "Acesso a dados cadastrais. Permitido para Recepção, Triagem, Médico, Admin e o próprio Paciente.")

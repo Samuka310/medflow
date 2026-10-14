@@ -98,6 +98,12 @@ public class PacienteService {
         return mapToResumoDTO(paciente);
     }
 
+    public com.medflow.dto.PacienteResumoDTO findMe(String email) {
+        Paciente paciente = pacienteRepository.findByUsuarioEmail(email)
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Registro de paciente não encontrado para este usuário."));
+        return mapToResumoDTO(paciente);
+    }
+
     public com.medflow.dto.PacienteClinicoDTO findClinicoById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));

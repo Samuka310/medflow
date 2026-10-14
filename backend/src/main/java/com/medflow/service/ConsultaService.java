@@ -18,6 +18,7 @@ import com.medflow.repository.MedicoRepository;
 import com.medflow.repository.PacienteRepository;
 import com.medflow.repository.PagamentoRepository;
 import com.medflow.repository.TriagemRepository;
+import com.medflow.strategy.cancelamento.PoliticaCancelamentoContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,6 +44,7 @@ public class ConsultaService {
     private final TriagemRepository triagemRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ConsultaProperties consultaProperties;
+    private final PoliticaCancelamentoContext politicaCancelamentoContext;
 
     @Transactional
     public ConsultaDTO agendar(ConsultaDTO dto) {
@@ -109,7 +111,6 @@ public class ConsultaService {
             throw new RegraDeNegocioException("Somente consultas AGENDADAS podem ser remarcadas.");
         }
 
-        // Lock pessimista para garantir consistência na remarcação
         medicoRepository.findByIdWithLock(consulta.getMedico().getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Médico não encontrado."));
 
@@ -172,9 +173,8 @@ public class ConsultaService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Consulta não encontrada."));
 
-        if (consulta.getDataHora().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new RegraDeNegocioException("Cancelamento só permitido com pelo menos 2 horas de antecedência.");
-        }
+        // Aplica a política de cancelamento/reembolso via Strategy Pattern
+        politicaCancelamentoContext.processarCancelamento(consulta, LocalDateTime.now());
 
         consulta.cancelar();
         consultaRepository.save(consulta);

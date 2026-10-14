@@ -3,6 +3,8 @@ package com.medflow.service;
 import com.medflow.config.RabbitMQConfig;
 import com.medflow.entity.EventoProcessado;
 import com.medflow.event.ConsultaEvento;
+import com.medflow.factory.notificacao.NotificadorFactory;
+import com.medflow.factory.notificacao.TipoCanalNotificacao;
 import com.medflow.repository.EventoProcessadoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NotificacaoListener {
 
     private final EventoProcessadoRepository eventoProcessadoRepository;
+    private final NotificadorFactory notificadorFactory;
     private final Set<UUID> cacheMemoriaIdempotencia = ConcurrentHashMap.newKeySet();
 
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NOTIFICACOES)
@@ -47,7 +50,8 @@ public class NotificacaoListener {
         }
 
         if (evento != null) {
-            log.info("📧 [NOTIFICAÇÃO ASSÍNCRONA] Enviando e-mail sobre a consulta {}: {}", evento.consultaId(), evento.detalhes());
+            // Utilização do NotificadorFactory para despachar notificação pelo canal correspondente
+            notificadorFactory.obterNotificador(TipoCanalNotificacao.EMAIL).enviar(evento);
         }
         return true;
     }

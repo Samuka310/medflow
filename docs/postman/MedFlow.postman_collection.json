@@ -1,0 +1,799 @@
+{
+  "info": {
+    "name": "MedFlow API Collection",
+    "_postman_id": "8f8b8a5b-9d62-4f3b-857c-1794b6ecb1d0",
+    "description": "Coleção completa da API REST do ecossistema MedFlow (Microsserviços Spring Cloud + Spring Security + JWT)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 - Autenticação",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"token\", jsonData.token);",
+                  "    console.log(\"Token JWT atualizado no ambiente!\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login (Médico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"token\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dr.carlos\",\n  \"password\": \"medico123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Novo Usuário (Paciente)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"maria.silva\",\n  \"password\": \"senha123\",\n  \"role\": \"PACIENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Administração",
+      "item": [
+        {
+          "name": "Cadastrar Colaborador/Funcionário",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ana Paula Souza\",\n  \"cpf\": \"12345678901\",\n  \"cargo\": \"Recepcionista\",\n  \"username\": \"ana.recepcao\",\n  \"password\": \"senha123\",\n  \"role\": \"RECEPCIONISTA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/funcionarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "funcionarios"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Especialidades",
+      "item": [
+        {
+          "name": "Listar Especialidades",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/especialidades",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "especialidades"]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar Especialidade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"especialidadeId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cardiologia\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/especialidades",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "especialidades"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Especialidade por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/especialidades/{{especialidadeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "especialidades", "{{especialidadeId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Médicos",
+      "item": [
+        {
+          "name": "Listar Médicos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos"]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar Médico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"medicoId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dr. Carlos Alberto\",\n  \"crm\": \"CRM/SP 123456\",\n  \"especialidadeIds\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Médico por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "{{medicoId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Pacientes",
+      "item": [
+        {
+          "name": "Listar Pacientes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes"]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"pacienteId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mariana Lima\",\n  \"cpf\": \"123.456.789-00\",\n  \"telefone\": \"(11) 98765-4321\",\n  \"email\": \"mariana.lima@exemplo.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Resumo do Paciente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}/resumo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}", "resumo"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Dados Clínicos do Paciente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}/clinico",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}", "clinico"]
+            }
+          }
+        },
+        {
+          "name": "Prescrever Receita Médica",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"receitaId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamento\": \"Amoxicilina 500mg\",\n  \"posologia\": \"Tomar 1 cápsula de 8 em 8 horas por 7 dias.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}/receitas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}", "receitas"]
+            }
+          }
+        },
+        {
+          "name": "Emitir Atestado Médico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"atestadoId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricao\": \"Paciente necessita de afastamento laboral por 3 dias devido a quadro gripal agudo.\",\n  \"dias\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}/atestados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}", "atestados"]
+            }
+          }
+        },
+        {
+          "name": "Download Receita PDF",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/receitas/{{receitaId}}/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "receitas", "{{receitaId}}", "pdf"]
+            }
+          }
+        },
+        {
+          "name": "Download Atestado PDF",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/atestados/{{atestadoId}}/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "atestados", "{{atestadoId}}", "pdf"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Consultas",
+      "item": [
+        {
+          "name": "Agendar Consulta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"consultaId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"dataHora\": \"2026-11-20T14:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas"]
+            }
+          }
+        },
+        {
+          "name": "Remarcar Consulta",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHora\": \"2026-11-21T10:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/remarcar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "remarcar"]
+            }
+          }
+        },
+        {
+          "name": "Confirmar Consulta",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/confirmar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "confirmar"]
+            }
+          }
+        },
+        {
+          "name": "Check-in Presencial",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "checkin"]
+            }
+          }
+        },
+        {
+          "name": "Realizar Consulta",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/realizar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "realizar"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar Consulta (com Política GoF)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "cancelar"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todas as Consultas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas"]
+            }
+          }
+        },
+        {
+          "name": "Agenda Geral de Hoje (Recepção)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/hoje",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "hoje"]
+            }
+          }
+        },
+        {
+          "name": "Agenda do Médico (Ordenada por Manchester)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/agenda-hoje",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "agenda-hoje"]
+            }
+          }
+        },
+        {
+          "name": "Exportar Consultas em CSV (Streaming)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/relatorio-csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "relatorio-csv"]
+            }
+          }
+        },
+        {
+          "name": "Notificações da Consulta (via Feign Microsserviço)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/{{consultaId}}/notificacoes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultas", "{{consultaId}}", "notificacoes"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Triagem (Manchester)",
+      "item": [
+        {
+          "name": "Registrar Triagem",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consultaId\": \"{{consultaId}}\",\n  \"pressaoArterial\": \"120x80\",\n  \"temperatura\": 36.8,\n  \"batimentos\": 75,\n  \"sintomas\": \"Cefaleia moderada e náusea\",\n  \"prioridade\": \"AMARELO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/triagens",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triagens"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Triagem por Consulta",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/triagens/consulta/{{consultaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triagens", "consulta", "{{consultaId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Prontuários & Exames",
+      "item": [
+        {
+          "name": "Salvar Prontuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"prontuarioId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consultaId\": \"{{consultaId}}\",\n  \"diagnostico\": \"Enxaqueca tensional aguda\",\n  \"prescricao\": \"Repouso, hidratação e analgésico se dor forte.\",\n  \"observacoes\": \"Paciente sem sinais neurológicos focais.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/prontuarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prontuarios"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Prontuário por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/prontuarios/{{prontuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prontuarios", "{{prontuarioId}}"]
+            }
+          }
+        },
+        {
+          "name": "Meu Histórico de Prontuários",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/prontuarios/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prontuarios", "me"]
+            }
+          }
+        },
+        {
+          "name": "Adicionar Exame ao Prontuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prontuarioId\": \"{{prontuarioId}}\",\n  \"tipoExame\": \"Hemograma Completo\",\n  \"resultado\": \"Normal. Hemoglobina 14.2 g/dL.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/exames",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exames"]
+            }
+          }
+        },
+        {
+          "name": "Listar Exames do Prontuário",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/exames/prontuario/{{prontuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "exames", "prontuario", "{{prontuarioId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Pagamentos & Faturamento",
+      "item": [
+        {
+          "name": "Buscar Pagamento por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagamentos/{{pagamentoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagamentos", "{{pagamentoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Pagamento",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagamentos/{{pagamentoId}}/pagar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagamentos", "{{pagamentoId}}", "pagar"]
+            }
+          }
+        },
+        {
+          "name": "Estornar Pagamento",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagamentos/{{pagamentoId}}/estornar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagamentos", "{{pagamentoId}}", "estornar"]
+            }
+          }
+        },
+        {
+          "name": "Relatório Consolidado de Faturamento",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/faturamento/relatorio",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "faturamento", "relatorio"]
+            }
+          }
+        },
+        {
+          "name": "Exportar Relatório Financeiro CSV (Streaming)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/faturamento/relatorio-csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "faturamento", "relatorio-csv"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Auditoria & Observabilidade",
+      "item": [
+        {
+          "name": "Listar Logs de Auditoria",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/auditoria?limite=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auditoria"],
+              "query": [
+                { "key": "limite", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actuator Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "Actuator Prometheus Metrics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "prometheus"]
+            }
+          }
+        },
+        {
+          "name": "OpenAPI v3 JSON Docs",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{coreUrl}}/v3/api-docs",
+              "host": ["{{coreUrl}}"],
+              "path": ["v3", "api-docs"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

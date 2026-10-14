@@ -1,5 +1,22 @@
 # Changelog
 
+### Fase 9 - Frontend Completo e Polido (React 19, TypeScript, Tailwind, RBAC)
+- **Implementação Integral de Telas por Papel (RBAC)**:
+  - `AgendaMedico.tsx` (`/agenda`): Fila de atendimento médico com ordenação por gravidade do Protocolo de Manchester (EMERGÊNCIA, MUITO URGENTE, URGENTE, POUCO URGENTE, NÃO URGENTE), chamada de paciente e ação direta para início de atendimento.
+  - `Triagem.tsx` (`/triagem`): Painel de enfermagem com aferição de sinais vitais (PA, FC, Temperatura), descrição de queixas e classificação em 5 níveis com badges e cores padronizadas de Manchester.
+  - `Faturamento.tsx` (`/faturamento`): Painel financeiro de gestão de caixa, liquidação de consultas, estornos e download em streaming de arquivo CSV para conciliação contábil.
+  - `ProntuarioView.tsx` (`/prontuario/:consultaId`): Atendimento clínico com registro de evolução médica, prescrição de receitas e emissão de atestados médicos com download instantâneo de PDFs gerados pelo backend.
+  - `Recepcao.tsx` (`/recepcao`): Painel de recepção para check-in presencial, agendamento imediato, cancelamento e reagendamento de consultas.
+  - `Dashboard.tsx` (`/admin`): Painel administrativo com métricas gerenciais, cadastro de colaboradores por cargo, histórico de auditoria de acessos e importador em lote CSV com diagnóstico de erros linha a linha.
+- **Navegação, Roteamento e Feedback Visual**:
+  - `Layout.tsx`: Barra de navegação adaptativa para todos os 6 perfis (`ADMIN`, `MEDICO`, `RECEPCIONISTA`, `TRIAGEM`, `FATURAMENTO`, `PACIENTE`), menu hambúrguer responsivo mobile, badge colorido por papel e Toaster global do Sonner.
+  - `App.tsx`: Centralização de rotas com `ProtectedRoute` e criação do `HomePortal` com cartões de atalho contextuais por papel de usuário.
+  - `Login.tsx`: Botões de acesso rápido com 1 clique para demonstração de portfólio de todos os 6 papéis com credenciais pré-carregadas.
+  - `MinhasConsultas.tsx` & `Medicos.tsx`: Integração com `GET /api/pacientes/me`, skeletons animados de carregamento, estados vazios ilustrados e links diretos para visualização de documentos.
+- **Backend & Portfólio**:
+  - Adição de `DataInitializer` populando especialidades, médicos, funcionários, pacientes e usuário administrador para testes imediatos sem dependência externa.
+  - Criação do documento executivo de portfólio `docs/CURRICULO_PROJECT_DESCRIPTION.md` com bullet points para currículo/LinkedIn e guia de perguntas para entrevistas técnicas.
+
 ### Fase 8 - Documentação Técnica da API (OpenAPI, Swagger, Postman e docs/API.md)
 - **Padronização OpenAPI / Swagger**:
   - Enriquecimento de `OpenApiConfig` com múltiplos servidores (Gateway 8080 e Core 8081), esquema de segurança `bearerAuth` detalhado e licença MIT.

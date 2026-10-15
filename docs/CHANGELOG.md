@@ -1,5 +1,40 @@
 # Changelog
 
+### Fase 10 - Testes Automatizados Avançados, Cobertura JaCoCo & CI/CD
+- **Cobertura de Código com JaCoCo (`jacoco-maven-plugin:0.8.12`)**:
+  - Configuração do plugin JaCoCo no `backend/pom.xml` para medição de cobertura de instruções e branches durante as fases de teste e verificação.
+  - Exclusão de classes não testáveis por unidade (DTOs, Entidades JPA puras, Configurações de infraestrutura e classe principal do Spring Boot).
+  - Alcance de **70.26% de cobertura de código por instruções** (3.813 instruções cobertas).
+- **Expansão Massiva da Suíte de Testes Automatizados (de 32 para 101 testes)**:
+  - Criação de suítes de testes unitários com Mockito para serviços críticos:
+    - `PacienteServiceTest` (9 testes): criação, regras de negócio de CPF duplicado, consulta `findMe`, prescrição de receitas e emissão de atestados médicos.
+    - `MedicoServiceTest` (8 testes): cadastro, validação de CRM duplicado e especialidades inexistentes, listagem e filtro por especialidade.
+    - `TriagemServiceTest` (4 testes): registro pelo Protocolo de Manchester, verificação de vínculo com paciente e idempotência.
+    - `PagamentoServiceTest` (5 testes): liquidação de pagamentos pendentes, estornos, auditoria e bloqueio de transições inválidas.
+    - `AdminServiceTest` (3 testes): criação de colaboradores por perfil (RECEPCIONISTA, TRIAGEM, FATURAMENTO) e validação de email.
+    - `ProntuarioServiceTest` (3 testes): salvamento clínico, auditoria e bloqueio de acesso a dados de outros pacientes (`AcessoNegadoException`).
+    - `EspecialidadeServiceTest` (6 testes): CRUD completo e validações de unicidade por nome.
+    - `ExameServiceTest` (2 testes): upload e listagem vinculada a prontuário.
+    - `FaturamentoServiceTest` (1 teste): consolidação de métricas e KPIs financeiros.
+    - `AuditoriaServiceTest` (3 testes): auditoria automática com e sem contexto de autenticação e paginação.
+    - `AcessoSecurityTest` (4 testes): validação de regras de segurança fina em nível de método (`@acessoSecurity`).
+    - `JwtServiceTest` (3 testes): geração de tokens com claims, extração de username e validação de expiração.
+    - Expansão de `ConsultaServiceTest` (10 testes): agendamento com validação de antecedência mínima, check-in, confirmação, cancelamento via GoF Strategy, realização condicionada a pagamento e ordenação da fila médica pela gravidade de Manchester.
+  - Criação de testes de endpoint com MockMvc e `@WebMvcTest` standalone:
+    - `ConsultaControllerTest` (4 testes): rotas POST, GET, PUT confirmar e cancelar.
+    - `FaturamentoControllerTest` (1 teste): consolidação financeira e relatório.
+    - `TriagemControllerTest` (2 testes): registro de triagem e consulta por ID.
+    - `PacienteControllerTest` (3 testes): listagem, resumo cadastral e consulta de perfil próprio (`/me`).
+- **Pipeline de Integração Contínua (CI/CD com GitHub Actions)**:
+  - Criação do wrapper Maven raiz (`mvnw` e `mvnw.cmd`) para permitir execução unificada do reactor multi-módulo na raiz do repositório.
+  - Atualização de `.github/workflows/ci.yml`:
+    - Disparos automáticos em pushes para `main`, `master` e branches de feature (`feat/**`), além de pull requests.
+    - Job `backend-test`: compilação Java 21, execução de todos os testes do reactor com `./mvnw clean test jacoco:report`, e upload automático do relatório HTML do JaCoCo como artefato de build.
+    - Job `frontend-test`: instalação de dependências Node 20, type-checking com TypeScript (`tsc -b`) e compilação de produção com Vite.
+    - Job `docker-build`: verificação de integridade dos builds do Docker Compose.
+- **Documentação & Badges**:
+  - Atualização do `README.md` com badges de status de CI/CD, JaCoCo Coverage (70.2%), contagem de testes (101 passing) e instruções para geração de relatórios locais.
+
 ### Fase 9 - Frontend Completo e Polido (React 19, TypeScript, Tailwind, RBAC)
 - **Implementação Integral de Telas por Papel (RBAC)**:
   - `AgendaMedico.tsx` (`/agenda`): Fila de atendimento médico com ordenação por gravidade do Protocolo de Manchester (EMERGÊNCIA, MUITO URGENTE, URGENTE, POUCO URGENTE, NÃO URGENTE), chamada de paciente e ação direta para início de atendimento.

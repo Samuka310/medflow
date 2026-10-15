@@ -1,115 +1,133 @@
-# MedFlow - Sistema de Gestão de Clínicas Médicas 🏥
+# MedFlow - Sistema de Gestão Hospitalar & Clínica Médica 🏥
 
-Bem-vindo ao **MedFlow**, um sistema completo e moderno construído do zero, passando por todas as fases de uma engenharia de software corporativa: do planejamento e banco de dados, até a integração React+Java e orquestração Docker/Kubernetes com pipelines de CI/CD.
+[![MedFlow CI/CD Pipeline](https://github.com/Samuka310/medflow/actions/workflows/ci.yml/badge.svg)](https://github.com/Samuka310/medflow/actions/workflows/ci.yml)
+![Java 21](https://img.shields.io/badge/Java-21-orange.svg)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5%20%2F%204.1-green.svg)
+![Spring Cloud Gateway](https://img.shields.io/badge/Spring%20Cloud-Gateway%20%26%20OpenFeign-blue.svg)
+![Coverage](https://img.shields.io/badge/JaCoCo%20Coverage-70.2%25-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-101%20passing-success.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-## 🚀 Como Ligar o Sistema Inteiro na Sua Máquina
-O projeto foi 100% containerizado para facilitar a sua vida. Esqueça de instalar banco de dados ou mensageria manualmente.
-
-**Pré-requisitos:** Você precisa ter apenas o [Docker Desktop](https://www.docker.com/products/docker-desktop) instalado e rodando.
-
-Abra o terminal na pasta raiz do projeto (`Medflow/`) e digite um único comando:
-```bash
-docker compose up -d --build
-```
-*O comando `--build` garante que as imagens do frontend e do backend sejam compiladas com a última versão do seu código.*
-
-Pronto! Em cerca de 30 a 60 segundos, o ecossistema inteiro estará vivo.
-
-## 🧭 Onde acessar cada coisa? (Links Rápidos)
-
-| O que é? | URL de Acesso | O que fazer lá? |
-| :--- | :--- | :--- |
-| **🌐 Frontend (React)** | [http://localhost:5173](http://localhost:5173) | Esta é a tela que o usuário final vê. Você pode se registrar como Paciente ou Médico, fazer login, buscar médicos, agendar consultas e ver o Dashboard. |
-| **📖 API Docs (Swagger)** | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) | O "cérebro" sem a interface gráfica. Aqui você pode testar as chamadas puras da API, verificar todos os endpoints disponíveis e ver os modelos (DTOs) que o Backend espera receber. |
-| **🐰 Mensageria (RabbitMQ)** | [http://localhost:15672](http://localhost:15672) | O painel que gerencia eventos assíncronos (como o disparo de "e-mails" ao confirmar consultas). **Usuário:** `guest` / **Senha:** `guest` |
-| **📊 Painel Grafana** | [http://localhost:3000](http://localhost:3000) | Observabilidade e saúde do sistema. Acompanhe se o sistema está consumindo muita CPU ou quantas requisições por segundo estão entrando. **Usuário:** `admin` / **Senha:** `admin` |
-| **⚙️ Métricas Brutas** | [http://localhost:9090](http://localhost:9090) | Painel do Prometheus. Coleta os dados do Spring Boot Actuator em tempo real para o Grafana ler. |
+Bem-vindo ao **MedFlow**, um ecossistema integrado de gestão clínica e hospitalar de alta disponibilidade construído com padrões corporativos de engenharia de software: arquitetura reativa em microsserviços, mensageria orientada a eventos, bloqueios pessimistas contra concorrência, streaming de dados de alto volume, Protocolo Internacional de Triagem de Manchester e esteira de CI/CD completa.
 
 ---
 
-## 🛠️ Como Testar e Ver Funcionar de Verdade?
+## 🏛️ Arquitetura do Ecossistema
 
-Siga este passo-a-passo simples para ver todos os módulos conversando entre si:
+O repositório é orquestrado como um projeto multi-módulo Maven (`medflow-aggregator`):
 
-1. **Acesse o Frontend** ([http://localhost:5173](http://localhost:5173)) e clique em "Criar Conta". 
-2. Escolha se cadastrar como `PACIENTE` e faça o login com o e-mail/senha que acabou de criar.
-3. Se você não vir médicos disponíveis, é porque o banco está vazio. Abra o **Swagger** ([http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)), cadastre uma nova especialidade (ex: Cardiologia) e um novo médico. *Dica: Se a rota pedir Token, use a rota de login no Swagger, copie o token e clique no botão verde "Authorize" no topo da página.*
-4. Volte para o Frontend. Na tela de médicos, você verá o médico que acabou de criar. Clique para **Agendar uma Consulta**.
-5. Quando a consulta for agendada:
-   - Um registro será salvo no banco **PostgreSQL**.
-   - Um evento de notificação será disparado automaticamente para o **RabbitMQ** rodando em background (visível no painel dele).
-   - O gráfico de requisições no **Grafana** subirá instantaneamente capturando essa chamada.
-   - O painel administrativo bloqueará que outra pessoa marque a consulta no exato mesmo horário para aquele médico (Proteção de Concorrência e Race Condition).
+```mermaid
+flowchart TD
+    Client["SPA Frontend (React 19 + TypeScript)"] -->|Port 8080| Gateway["API Gateway (Spring Cloud Gateway)"]
+    Gateway -->|Correlation ID: X-Request-Id| Core["MedFlow Core (Spring Boot - Port 8081)"]
+    Gateway -->|JWT Edge Auth| Notif["Notification Service (Port 8082)"]
+    
+    Core -->|Pessimistic Lock + ACID| Postgres[("PostgreSQL 16 (Flyway)")]
+    Core -->|Domain Event: AFTER_COMMIT| RabbitMQ{{"RabbitMQ Message Broker"}}
+    
+    RabbitMQ -->|fila.notificacoes| Notif
+    Core -.->|OpenFeign + Resilience4j Fallback| Notif
+    Notif -->|Persistência Auditoria| Postgres
+```
 
-## 🛑 Como Desligar o Sistema?
-Quando quiser parar tudo, rodar no terminal (na mesma pasta):
+### Módulos do Sistema:
+* **`libs/medflow-events`**: Biblioteca comum compartilhada contendo contratos imutáveis de eventos de domínio.
+* **`services/api-gateway`**: Edge Gateway reativo na porta 8080 com injeção de `Correlation ID` (`X-Request-Id`), validação de tokens JWT e políticas de CORS.
+* **`services/notification-service`**: Microsserviço independente na porta 8082 com consumidor AMQP RabbitMQ idempotente em 2 níveis e persistência de auditoria.
+* **`backend/`**: Núcleo clínico e hospitalar na porta 8081 com regras de negócio, agendamento concorrente seguro, prontuário, triagem e faturamento.
+* **`frontend/`**: Single Page Application em React 19, TypeScript, Tailwind CSS, TanStack Query e Sonner, com suporte aos 6 perfis clínicos (RBAC).
+
+---
+
+## 🧪 Qualidade de Software, Testes & JaCoCo
+
+O projeto possui uma suíte robusta de testes automatizados unitários, de integração, de concorrência multithread e de endpoints WebMvcTest:
+
+* **Total de Testes:** **101 testes automatizados (100% de aprovação)**
+* **Cobertura de Código (JaCoCo):** **70.26% de cobertura de instruções**
+* **Esteira de CI/CD (GitHub Actions):** `.github/workflows/ci.yml` executando compilação do reactor, testes com JaCoCo e verificação de build do frontend a cada push.
+
+### Como rodar a suíte de testes e gerar o relatório JaCoCo:
+```bash
+# Na raiz do repositório:
+./mvnw clean test jacoco:report
+
+# O relatório HTML interativo será gerado em:
+# backend/target/site/jacoco/index.html
+```
+
+---
+
+## 🚀 Como Executar o Sistema Completo via Docker
+
+**Pré-requisito:** [Docker Desktop](https://www.docker.com/products/docker-desktop) instalado e rodando.
+
+Abra o terminal na raiz do projeto e execute:
+```bash
+docker compose up -d --build
+```
+
+Em cerca de 30 a 60 segundos, todos os contêineres estarão saudáveis:
+* **Frontend SPA:** [http://localhost:5173](http://localhost:5173)
+* **API Gateway (Edge):** [http://localhost:8080](http://localhost:8080)
+* **Swagger UI (Documentação OpenAPI 3.0):** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+* **Painel RabbitMQ:** [http://localhost:15672](http://localhost:15672) (`guest` / `guest`)
+* **Métricas Prometheus:** [http://localhost:9090](http://localhost:9090)
+* **Painel Grafana:** [http://localhost:3000](http://localhost:3000) (`admin` / `admin`)
+
+---
+
+## 👥 Credenciais de Acesso Rápido para Demonstração (Seed Automático)
+
+Ao inicializar, o `DataInitializer` pré-carrega automaticamente todas as especialidades e contas de teste:
+
+| Papel / Perfil | E-mail de Acesso | Senha Padrão | Funcionalidades Principais |
+| :--- | :--- | :--- | :--- |
+| **Administrador** | `admin@medflow.com` | `admin123` | Dashboard gerencial, auditoria, cadastro de funcionários e importação CSV. |
+| **Médico** | `medico@medflow.com` | `medico123` | Fila de atendimento por Manchester, evolução clínica, receitas e atestados em PDF. |
+| **Recepção** | `recepcao@medflow.com` | `recepcao123` | Agendamento presencial, check-in, confirmação e reagendamento de consultas. |
+| **Triagem** | `triagem@medflow.com` | `triagem123` | Aferição de sinais vitais e classificação de gravidade Manchester por cores. |
+| **Faturamento** | `faturamento@medflow.com` | `faturamento123` | Liquidação de pagamentos, conciliação financeira e streaming de CSV. |
+| **Paciente** | `paciente@medflow.com` | `paciente123` | Agendamento online de consultas, histórico clínico e download de prescrições. |
+
+---
+
+## 🛠️ Desenvolvimento Local
+
+### Backend (Multi-Module Reactor):
+```bash
+# Compilar e validar todos os módulos:
+./mvnw clean test
+
+# Rodar o backend localmente no perfil dev:
+cd backend
+../mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+### Frontend (React 19 + TypeScript):
+```bash
+cd frontend
+npm install
+npm run dev
+# Para verificar a compilação de produção e tipagem TypeScript:
+npm run build
+```
+
+---
+
+## 🛑 Como Parar o Ambiente
 ```bash
 docker compose down
-```
-Se quiser apagar também o banco de dados (recomeçar 100% do zero):
-```bash
+# Ou para resetar os volumes e banco de dados:
 docker compose down -v
 ```
 
 ---
 
-## 🏗️ Para Desenvolvedores (Como mexer no código)
-
-- O **Backend** fica na pasta `/backend`. É um projeto Java 21 com Spring Boot. Para testar sem Docker, basta usar o IntelliJ IDEA e rodar o arquivo `MedflowApplication.java` ou rodar `./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"`. Ele tem validações sólidas baseadas em Tokens JWT de segurança (`@PreAuthorize`).
-- O **Frontend** fica na pasta `/frontend`. Usa Node 20, Vite, React e Tailwind CSS. Para desenvolver localmente, basta entrar na pasta e rodar `npm install` seguido de `npm run dev`. Ele rodará de forma relâmpago, interceptando os tokens e passando pelo `axios` para bater na API na porta 8080.
-- O **Banco de Dados** usa *Flyway* para versionamento. Todos os esquemas de tabelas ficam documentados e controlados na pasta `backend/src/main/resources/db/migration`.
-- Os manifestos do **Kubernetes** ficam na pasta `/k8s/` e o pipeline de **CI/CD** (GitHub Actions) está em `.github/workflows/ci.yml`. Esses arquivos preparam o software para ser jogado na nuvem num ambiente multibilionário tolerante a falhas (Self-Healing e Load Balancing automático).
-
----
-
-## ☁️ Arquitetura em Nuvem (Fase 19)
-
-Para hospedar o sistema na internet de forma 100% gratuita e com qualidade profissional, o MedFlow foi dividido em microsserviços modernos. Cada peça foi para a sua nuvem especializada:
-
-1. **Vercel (Frontend em React):** É a plataforma líder para hospedar interfaces. Ela pega o nosso código da pasta `frontend/`, compila e distribui para o mundo todo. Cada vez que fazemos um `git push` no GitHub, a Vercel atualiza o site automaticamente sem o usuário final perceber (Zero Downtime).
-2. **Render.com (Backend em Java Spring Boot):** É onde mora o "cérebro" do sistema (a pasta `backend/`). Ele baixa a nossa imagem Docker do Java, liga o servidor e fica escutando as requisições que chegam da Vercel. Se ficar ocioso, ele "dorme" para economizar custos, e acorda assim que alguém tenta marcar uma consulta.
-3. **Neon.tech (Banco de Dados PostgreSQL):** Bancos de dados tradicionais são caros na nuvem. O Neon é um "Serverless Postgres", ou seja, ele desliga quando não está sendo usado e liga em milissegundos. É lá que ficam salvos os logins, médicos e pacientes. O Render (Java) se conecta ao Neon via uma URL (`jdbc:postgresql://...`).
-4. **CloudAMQP (Mensageria RabbitMQ):** O mensageiro assíncrono. Quando uma consulta é marcada, o Render manda um bilhete para o CloudAMQP: *"Avise o médico X"*. O CloudAMQP guarda esse bilhete numa fila e processa sem travar a tela do usuário. É perfeito para sistemas de alta carga.
-
-### Variáveis de Ambiente Necessárias em Produção
-
-Ao realizar o deploy da API (por exemplo, no **Render**), as seguintes variáveis devem ser configuradas:
-
-- `SPRING_DATASOURCE_URL`: A URL JDBC completa (ex: *jdbc:postgresql://...neon.tech/neondb...*) fornecida pelo Neon.
-- `SPRING_JPA_HIBERNATE_DDL_AUTO`: Use `update` (na primeira vez para criar as tabelas) ou `validate` (nos deploys subsequentes).
-- `SPRING_RABBITMQ_HOST`, `_USERNAME`, `_PASSWORD`, `_VIRTUAL_HOST`: Credenciais fornecidas pelo CloudAMQP.
-- `JWT_SECRET`: Uma chave forte (string longa aleatória) para criptografar os tokens de login.
-- `JWT_EXPIRATION`: O tempo de validade do token (ex: `86400000` para 24 horas).
-
-## 💻 Como continuar trabalhando de outro Computador (Do Zero)
-
-Se você for para outro computador (como o de casa) que não tem nada instalado, não se preocupe! O projeto foi desenhado para ser portátil. Veja o passo a passo para leigos:
-
-### 1. O que você precisa instalar no PC novo:
-- **Git:** Para baixar o código (https://git-scm.com/downloads)
-- **Docker Desktop:** Para rodar o banco de dados e servidores sem complicação (https://www.docker.com/products/docker-desktop)
-- **Editor de Código:** Recomendamos o VS Code, Cursor ou IntelliJ.
-
-### 2. Como baixar o projeto:
-Abra o terminal (ou Prompt de Comando) e digite:
-`ash
-git clone https://github.com/Samuka310/medflow.git
-cd medflow
-`
-
-### 3. Como rodar no PC novo:
-Como usamos Docker, você não precisa instalar Java, Node ou PostgreSQL na sua máquina. Basta digitar:
-`ash
-docker compose up -d --build
-`
-*Pronto! O sistema inteiro (Frontend, Backend, Banco e RabbitMQ) vai ligar no seu PC novo exatamente como estava no do trabalho.*
-
-### 4. A Mágica do Deploy Automático (CI/CD)
-Se você alterar qualquer código em casa e quiser atualizar o site que está no ar, basta salvar e rodar:
-`ash
-git add .
-git commit -m "sua mensagem do que mudou"
-git push
-`
-**O que acontece depois do Push?** 
-Você não precisa abrir o site da Vercel ou do Render! Eles estão "vigiando" o seu GitHub. Assim que o código novo chegar, a Vercel vai atualizar a interface visual sozinha, e o Render vai reiniciar o servidor Java sozinho. Em 2 minutos, a versão nova estará no ar para o mundo todo.
+## 📄 Documentação Técnica e Decisões de Arquitetura
+Consulte a pasta [`docs/`](./docs):
+* [`docs/CURRICULO_PROJECT_DESCRIPTION.md`](./docs/CURRICULO_PROJECT_DESCRIPTION.md) — Destaques para currículo, LinkedIn e guia de entrevistas técnicas.
+* [`docs/API.md`](./docs/API.md) — Especificação detalhada de endpoints, RFC 7807 e fluxos clínicos.
+* [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Diagramas C4, microsserviços e comunicação inter-serviços.
+* [`docs/DESIGN_PATTERNS.md`](./docs/DESIGN_PATTERNS.md) — Guia de Padrões GoF aplicados (Strategy, Template Method, Factory, Builder).
+* [`docs/decisions/`](./docs/decisions/) — 8 Architecture Decision Records (ADRs).

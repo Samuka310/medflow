@@ -1,5 +1,37 @@
 # Changelog
 
+### Fase 11 - Observabilidade Avançada, Distributed Tracing, Métricas Customizadas & Segurança de Borda (Rate Limiting)
+- **Segurança de Borda & Rate Limiting no Spring Cloud Gateway (`RateLimiterGlobalFilter.java`)**:
+  - Implementação de filtro reativo global de borda (`GlobalFilter`, `Ordered.HIGHEST_PRECEDENCE + 1`), executando logo após a injeção do Correlation ID e antes de qualquer downstream/auth.
+  - Proteção por IP em janela deslizante de 60 segundos com limites granulares:
+    - **15 req/min** para endpoints `/auth/**` (proteção rigorosa contra força bruta e credential stuffing).
+    - **120 req/min** para rotas gerais `/api/**` (proteção contra negação de serviço e sobrecarga de CPU/banco).
+  - Respostas no padrão RFC 7807 (`application/problem+json`) com status HTTP 429 Too Many Requests e cabeçalhos `Retry-After: 60`, `X-RateLimit-Limit` e `X-RateLimit-Remaining`.
+  - Suíte de testes unitários reativos `RateLimiterGlobalFilterTest.java` (3 testes cobrindo rotas permitidas, bypass de preflight/actuator e bloqueio com 429).
+- **Métricas Customizadas de Negócio com Micrometer (`MedflowMetricsService.java`)**:
+  - Criação de serviço central de telemetria integrado ao `MeterRegistry` do Micrometer e exposto via `/actuator/prometheus`:
+    - `medflow.consultas.agendadas`: Total de agendamentos realizados com sucesso.
+    - `medflow.consultas.confirmadas`: Consultas confirmadas por paciente ou recepção.
+    - `medflow.consultas.canceladas`: Cancelamentos com tag dimensional por motivo (`motivo`).
+    - `medflow.consultas.realizadas`: Atendimentos médicos concluídos.
+    - `medflow.triagens.realizadas`: Triagens com tag por prioridade Manchester (`prioridade`).
+    - `medflow.pagamentos.processados`: Transações com tags por método (`forma`) e status (`status`).
+    - `medflow.consultas.agendamento.duracao`: Timer de latência com cálculo de percentis p50, p95 e p99.
+  - Instrumentação direta nos métodos de negócio de `ConsultaService.java`.
+  - Suíte de testes unitários com `SimpleMeterRegistry` em `MedflowMetricsServiceTest.java` (4 testes).
+- **Health Checks Avançados & Probes de Liveness/Readiness**:
+  - Criação de `MedflowSystemHealthIndicator.java` validando integridade do PostgreSQL e medições de memória heap da JVM.
+  - Testes unitários em `MedflowSystemHealthIndicatorTest.java` (2 testes cobrindo UP e DOWN).
+  - Habilitação de probes nativas do Kubernetes (`/actuator/health/liveness`, `/actuator/health/readiness`) no `backend`, `api-gateway` e `notification-service`.
+- **Provisionamento e Dashboard Automatizado no Grafana**:
+  - Configuração de provisionamento do datasource Prometheus (`grafana/provisioning/datasources/prometheus.yml`).
+  - Provider de dashboards declarativos (`grafana/provisioning/dashboards/dashboards.yml`).
+  - Dashboard completo (`grafana/dashboards/medflow-overview.json`) com painéis para KPIs clínicos de negócio, gráfico em rosca de triagem Manchester, tempos médios de resposta, throughput por status HTTP, disparos de Rate Limiter (429) e gráficos de consumo de CPU/Heap.
+  - Atualização do `docker-compose.yml` para montagem automática dos volumes de provisionamento no container do Grafana.
+- **Métricas de Qualidade**:
+  - Suíte expandida para **112 testes automatizados** (107 no backend + 5 no gateway), com 100% de aprovação.
+  - **71.27% de cobertura de código por instruções no JaCoCo** (4.018 instruções cobertas).
+
 ### Fase 10 - Testes Automatizados Avançados, Cobertura JaCoCo & CI/CD
 - **Cobertura de Código com JaCoCo (`jacoco-maven-plugin:0.8.12`)**:
   - Configuração do plugin JaCoCo no `backend/pom.xml` para medição de cobertura de instruções e branches durante as fases de teste e verificação.

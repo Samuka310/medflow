@@ -9,6 +9,7 @@ import com.medflow.entity.enums.PrioridadeTriagem;
 import com.medflow.event.ConsultaEvento;
 import com.medflow.exception.RecursoNaoEncontradoException;
 import com.medflow.exception.RegraDeNegocioException;
+import com.medflow.metrics.MedflowMetricsService;
 import com.medflow.repository.*;
 import com.medflow.strategy.cancelamento.PoliticaCancelamentoContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +59,9 @@ class ConsultaServiceTest {
 
     @Mock
     private PoliticaCancelamentoContext politicaCancelamentoContext;
+
+    @Mock
+    private MedflowMetricsService medflowMetricsService;
 
     @InjectMocks
     private ConsultaService consultaService;

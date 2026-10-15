@@ -13,6 +13,7 @@ import com.medflow.event.ConsultaEvento;
 import com.medflow.exception.ConflitoAgendaException;
 import com.medflow.exception.RecursoNaoEncontradoException;
 import com.medflow.exception.RegraDeNegocioException;
+import com.medflow.metrics.MedflowMetricsService;
 import com.medflow.repository.ConsultaRepository;
 import com.medflow.repository.MedicoRepository;
 import com.medflow.repository.PacienteRepository;
@@ -45,6 +46,7 @@ public class ConsultaService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ConsultaProperties consultaProperties;
     private final PoliticaCancelamentoContext politicaCancelamentoContext;
+    private final MedflowMetricsService medflowMetricsService;
 
     @Transactional
     public ConsultaDTO agendar(ConsultaDTO dto) {
@@ -94,6 +96,7 @@ public class ConsultaService {
         pagamentoRepository.save(pagamento);
 
         applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
+        medflowMetricsService.registrarConsultaAgendada();
 
         return mapToDTO(consulta);
     }
@@ -149,6 +152,7 @@ public class ConsultaService {
 
         consulta.confirmar();
         consultaRepository.save(consulta);
+        medflowMetricsService.registrarConsultaConfirmada();
 
         applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
     }
@@ -178,6 +182,7 @@ public class ConsultaService {
 
         consulta.cancelar();
         consultaRepository.save(consulta);
+        medflowMetricsService.registrarConsultaCancelada("CANCELAMENTO_SOLICITADO");
 
         applicationEventPublisher.publishEvent(new ConsultaEvento(consulta.getId(), "EVENTO_CONSULTA", Instant.now(), "Operacao de consulta: " + consulta.getStatus()));
     }
@@ -200,6 +205,7 @@ public class ConsultaService {
 
         consulta.realizar();
         consultaRepository.save(consulta);
+        medflowMetricsService.registrarConsultaRealizada();
     }
 
     public List<ConsultaDTO> findAll() {

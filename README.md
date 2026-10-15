@@ -4,8 +4,8 @@
 ![Java 21](https://img.shields.io/badge/Java-21-orange.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5%20%2F%204.1-green.svg)
 ![Spring Cloud Gateway](https://img.shields.io/badge/Spring%20Cloud-Gateway%20%26%20OpenFeign-blue.svg)
-![Coverage](https://img.shields.io/badge/JaCoCo%20Coverage-70.2%25-brightgreen.svg)
-![Tests](https://img.shields.io/badge/Tests-101%20passing-success.svg)
+![Coverage](https://img.shields.io/badge/JaCoCo%20Coverage-71.3%25-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-112%20passing-success.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 Bem-vindo ao **MedFlow**, um ecossistema integrado de gestão clínica e hospitalar de alta disponibilidade construído com padrões corporativos de engenharia de software: arquitetura reativa em microsserviços, mensageria orientada a eventos, bloqueios pessimistas contra concorrência, streaming de dados de alto volume, Protocolo Internacional de Triagem de Manchester e esteira de CI/CD completa.
@@ -43,8 +43,8 @@ flowchart TD
 
 O projeto possui uma suíte robusta de testes automatizados unitários, de integração, de concorrência multithread e de endpoints WebMvcTest:
 
-* **Total de Testes:** **101 testes automatizados (100% de aprovação)**
-* **Cobertura de Código (JaCoCo):** **70.26% de cobertura de instruções**
+* **Total de Testes:** **112 testes automatizados (100% de aprovação - 107 backend + 5 gateway)**
+* **Cobertura de Código (JaCoCo):** **71.27% de cobertura de instruções (4.018 instruções cobertas)**
 * **Esteira de CI/CD (GitHub Actions):** `.github/workflows/ci.yml` executando compilação do reactor, testes com JaCoCo e verificação de build do frontend a cada push.
 
 ### Como rodar a suíte de testes e gerar o relatório JaCoCo:

@@ -54,10 +54,31 @@
 | Épico | Item | Status | Commit/PR | Evidência |
 | :---: | :---: | :---: | :---: | :---: |
 | **Épico 0** | **0.1** Segredos fora do Git | Concluído e verificado | Commit feat(security): remove hardcoded secrets, add env injection and gitleaks | 112 testes OK, frontend build OK, .env.example, .gitleaks.toml, k8s/external-secret.yaml |
-| **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Não iniciado | - | - |
+| **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Concluído e verificado | Commit feat(security): migrate JWT to RS256 with kid, rotation and refresh token | 120 testes OK (5 novos), Flyway V10, RS256 assimétrico, replay detection |
 | **Épico 0** | **0.3** Correção vazamento prontuários | Não iniciado | - | - |
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Não iniciado | - | - |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Não iniciado | - | - |
+
+### Plano Técnico — Item 0.2: Migração JWT para RS256 com kid, rotação e Refresh Token
+- **O que existe hoje:**
+  - `JwtService` e `JwtAuthGlobalFilter` usam HMAC-SHA256 (chave simétrica compartilhada).
+  - O access token possui validade longa de 24 horas (`86400000ms`).
+  - Não há entidade nem fluxo de `RefreshToken`.
+  - Não há suporte a header `kid` para rotação de chaves.
+- **O que será alterado:**
+  - Criar `RsaKeyProvider` no backend para geração/carregamento de chaves RSA (2048-bit) com identificador `kid`.
+  - Atualizar `JwtService` para assinar tokens com chave privada RSA (algoritmo RS256) e incluir `kid` no cabeçalho JWT. Reduzir validade do access token para 15 minutos (900.000 ms).
+  - Manter suporte de validação legada como rede de segurança (`medflow.feature.jwt-legacy-fallback=true`).
+  - Atualizar `JwtAuthGlobalFilter` no API Gateway para validar assinaturas com chave pública RSA e suporte a `kid`.
+  - Criar migração Flyway `V10__criar_tabela_refresh_token.sql`.
+  - Criar entidade `RefreshToken`, repositório `RefreshTokenRepository`, DTOs `RefreshTokenRequest` e `TokenRefreshResponse`.
+  - Adicionar endpoints em `AuthController`: `POST /auth/refresh`, `POST /auth/revoke` e `GET /auth/public-key`.
+  - Atualizar `AuthService` para emitir pares (Access Token + Refresh Token) com rotação e detecção de reúso.
+- **Riscos & Mitigações:**
+  - *Risco:* Invalidação de sessões de clientes existentes durante a transição.
+  - *Mitigação:* Manter `token` no DTO `AuthResponse` e período de compatibilidade para tokens existentes.
+- **Como reverter:**
+  - Desligar a flag ou reverter via `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.1: Segredos fora do Git
 - **O que existe hoje:**

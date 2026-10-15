@@ -3,6 +3,8 @@ package com.medflow.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -15,12 +17,16 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class JwtService {
 
-    @Value("${jwt.secret}")
+    private final RsaKeyProvider rsaKeyProvider;
+
+    @Value("${jwt.secret:}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:900000}") // Padrão: 15 minutos (900.000 ms)
     private long jwtExpiration;
 
     public String extractUsername(String token) {
@@ -42,11 +48,12 @@ public class JwtService {
 
     private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
         return Jwts.builder()
+                .header().keyId(rsaKeyProvider.getKeyId()).and()
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey())
+                .signWith(rsaKeyProvider.getPrivateKey(), Jwts.SIG.RS256)
                 .compact();
     }
 
@@ -55,7 +62,7 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
@@ -64,15 +71,35 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSignInKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            // Validação padrão assimétrica com chave pública RSA (RS256)
+            return Jwts.parser()
+                    .verifyWith(rsaKeyProvider.getPublicKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception ex) {
+            // Compatibilidade e transição suave: fallback para tokens legados HMAC se a chave estiver configurada
+            if (secretKey != null && !secretKey.isBlank()) {
+                try {
+                    return Jwts.parser()
+                            .verifyWith(getSignInKey())
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+                } catch (Exception ignored) {
+                }
+            }
+            throw ex;
+        }
     }
 
     private SecretKey getSignInKey() {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public long getExpirationMillis() {
+        return jwtExpiration;
     }
 }

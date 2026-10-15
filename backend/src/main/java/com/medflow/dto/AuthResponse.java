@@ -10,5 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
-    private String token;
+    private String token; // Retrocompatibilidade com frontend existente
+    private String accessToken;
+    private String refreshToken;
+    @Builder.Default
+    private String tokenType = "Bearer";
+    private long expiresIn;
 }

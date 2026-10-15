@@ -53,11 +53,31 @@
 
 | Épico | Item | Status | Commit/PR | Evidência |
 | :---: | :---: | :---: | :---: | :---: |
-| **Épico 0** | **0.1** Segredos fora do Git | Não iniciado | - | - |
+| **Épico 0** | **0.1** Segredos fora do Git | Concluído e verificado | Commit feat(security): remove hardcoded secrets, add env injection and gitleaks | 112 testes OK, frontend build OK, .env.example, .gitleaks.toml, k8s/external-secret.yaml |
 | **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Não iniciado | - | - |
 | **Épico 0** | **0.3** Correção vazamento prontuários | Não iniciado | - | - |
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Não iniciado | - | - |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Não iniciado | - | - |
+
+### Plano Técnico — Item 0.1: Segredos fora do Git
+- **O que existe hoje:**
+  - `backend/src/main/resources/application-dev.yml` possui `jwt.secret` exposto em texto plano.
+  - `services/api-gateway/src/main/resources/application.yml` possui `jwt.secret` exposto em texto plano.
+  - `services/api-gateway/.../JwtAuthGlobalFilter.java` possui valor default hardcoded de 64 caracteres.
+  - `k8s/secret.yaml` possui `jwt-secret` exposto no repositório Git.
+  - Não há `.env.example` na raiz do projeto.
+  - O pipeline `.github/workflows/ci.yml` não possui etapa de Secret Scanning com Gitleaks.
+- **O que será alterado:**
+  - Configurar `backend` e `api-gateway` para obter `jwt.secret` estritamente via `${JWT_SECRET}`.
+  - Criar `.env.example` com placeholders claros de configuração.
+  - Atualizar `docker-compose.yml` para mapear `JWT_SECRET=${JWT_SECRET:-...}`.
+  - Atualizar `k8s/secret.yaml` com placeholders e criar manifesto de referência `k8s/external-secret.yaml` para integração com External Secrets Operator (Vault/AWS Secrets Manager).
+  - Adicionar job de secret scanning com Gitleaks no `.github/workflows/ci.yml` e arquivo `.gitleaks.toml`.
+- **Riscos & Mitigações:**
+  - *Risco:* Testes automatizados que sobem o contexto do Spring falharem por ausência de `${JWT_SECRET}`.
+  - *Mitigação:* Configurar valor de teste específico no perfil de teste/dev ou via `System.setProperty` nos testes relevantes.
+- **Como reverter:**
+  - Reverter as alterações via `git checkout HEAD~1` na branch `feat/epico-0-correcoes-imediatas`.
 | **Épico 0** | **0.6** Auditoria estruturada e sem silenciamento | Não iniciado | - | - |
 | **Épico 0** | **0.7** Rate limit distribuído via Redis | Não iniciado | - | - |
 | **Épico 0** | **0.8** PostgreSQL HA com PgBouncer | Não iniciado | - | - |

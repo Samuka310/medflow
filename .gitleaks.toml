@@ -1,0 +1,15 @@
+# ==============================================================================
+# MedFlow - Configuração do Scanner de Segredos (Gitleaks)
+# ==============================================================================
+title = "Medflow Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Permitir arquivos de template de exemplo e documentação"
+paths = [
+    '''\.env\.example$''',
+    '''docs/.*''',
+    '''src/test/.*'''
+]

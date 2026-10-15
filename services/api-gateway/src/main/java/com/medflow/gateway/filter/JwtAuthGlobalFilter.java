@@ -24,7 +24,7 @@ import java.util.List;
 @Slf4j
 public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     private static final List<String> OPEN_ENDPOINTS = List.of(

@@ -59,6 +59,7 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - SPRING_RABBITMQ_HOST=rabbitmq
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
+      - JWT_SECRET=${JWT_SECRET:-dev_insecure_dummy_key_for_local_testing_min_32_bytes_long!!}
     depends_on:
       db:
         condition: service_healthy
@@ -107,6 +108,7 @@ services:
     environment:
       - MEDFLOW_CORE_URL=http://backend:8081
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
+      - JWT_SECRET=${JWT_SECRET:-dev_insecure_dummy_key_for_local_testing_min_32_bytes_long!!}
     depends_on:
       backend:
         condition: service_healthy

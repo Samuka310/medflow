@@ -20,7 +20,7 @@ class JwtServiceTest {
     @BeforeEach
     void setUp() {
         jwtService = new JwtService();
-        ReflectionTestUtils.setField(jwtService, "secretKey", "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970");
+        ReflectionTestUtils.setField(jwtService, "secretKey", "dev_insecure_dummy_key_for_local_testing_min_32_bytes_long!!");
         ReflectionTestUtils.setField(jwtService, "jwtExpiration", 3600000L); // 1 hora
 
         userDetails = new User("usuario@medflow.com", "senha123", Collections.emptyList());

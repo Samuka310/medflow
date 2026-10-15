@@ -12,3 +12,7 @@ management:
       show-details: always
       probes:
         enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:dev_insecure_dummy_key_for_local_testing_min_32_bytes_long!!}
+  expiration: ${JWT_EXPIRATION:86400000}

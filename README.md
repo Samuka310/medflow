@@ -49,12 +49,39 @@ O projeto possui uma suíte robusta de testes automatizados unitários, de integ
 
 ### Como rodar a suíte de testes e gerar o relatório JaCoCo:
 ```bash
-# Na raiz do repositório:
-./mvnw clean test jacoco:report
+# Na raiz do repositório (executa 112 testes e gera relatório JaCoCo automaticamente):
+./mvnw clean test
 
 # O relatório HTML interativo será gerado em:
 # backend/target/site/jacoco/index.html
 ```
+
+---
+
+## ☸️ Deploy em Cluster Kubernetes (Produção)
+
+O MedFlow está pronto para deploy em clusters Kubernetes corporativos (EKS, GKE, AKS, Minikube ou Kind). Todos os manifests estão estruturados na pasta [`k8s/`](./k8s):
+
+```bash
+# Aplicar todos os recursos em ordem declarativa via Kustomize:
+kubectl apply -k k8s/
+
+# Verificar a prontidão dos pods, serviços, autoscalers e ingress:
+kubectl get pods,svc,hpa,ingress -l "app.kubernetes.io/part-of=medflow"
+```
+
+### Manifests de Produção:
+* **[`k8s/secret.yaml`](./k8s/secret.yaml)**: Segredos desacoplados para credenciais PostgreSQL, RabbitMQ e chave simétrica JWT.
+* **[`k8s/configmap.yaml`](./k8s/configmap.yaml)**: Variáveis de ambiente não-confidenciais, URLs inter-serviços e perfis ativos.
+* **[`k8s/postgres.yaml`](./k8s/postgres.yaml)**: `StatefulSet` com armazenamento persistente via `PersistentVolumeClaim` (5Gi), probes e ClusterIP.
+* **[`k8s/rabbitmq.yaml`](./k8s/rabbitmq.yaml)**: Broker AMQP com probes TCP socket e porta de gerenciamento.
+* **[`k8s/backend.yaml`](./k8s/backend.yaml)**: Núcleo MedFlow com 2 réplicas, quotas de recursos (requests/limits) e probes nativas (`/actuator/health/liveness` e `/actuator/health/readiness`).
+* **[`k8s/notification-service.yaml`](./k8s/notification-service.yaml)**: Microsserviço assíncrono com probes de liveness/readiness do Actuator.
+* **[`k8s/api-gateway.yaml`](./k8s/api-gateway.yaml)**: Borda com Rate Limiting global (15/120 req/min) e probes.
+* **[`k8s/frontend.yaml`](./k8s/frontend.yaml)**: Servidor Nginx com React 19, 2 réplicas e probes HTTP.
+* **[`k8s/ingress.yaml`](./k8s/ingress.yaml)**: Ingress NGINX unificado roteando `/api/**` para o Gateway e `/` para a SPA.
+* **[`k8s/hpa.yaml`](./k8s/hpa.yaml)**: `HorizontalPodAutoscaler` elástico (mínimo 2, máximo 10 réplicas por 70% CPU).
+* **[`k8s/kustomization.yaml`](./k8s/kustomization.yaml)**: Manifesto unificado para deploy completo com 1 comando.
 
 ---
 

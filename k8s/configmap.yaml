@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medflow-config
+  labels:
+    app.kubernetes.io/part-of: medflow
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SERVER_PORT: "8081"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://medflow-db-service:5432/medflow"
+  SPRING_RABBITMQ_HOST: "medflow-rabbitmq-service"
+  SPRING_RABBITMQ_PORT: "5672"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:8082"
+  MEDFLOW_CORE_URL: "http://medflow-backend-service:8081"

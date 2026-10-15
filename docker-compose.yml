@@ -64,6 +64,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
     networks:
       - medflow-network
 
@@ -82,6 +88,12 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - medflow-network
 
@@ -96,8 +108,16 @@ services:
       - MEDFLOW_CORE_URL=http://backend:8081
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
     depends_on:
-      - backend
-      - notification-service
+      backend:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - medflow-network
 
@@ -109,7 +129,8 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
     networks:
       - medflow-network
 

@@ -2,6 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: notification-service
+  labels:
+    app: notification-service
+    app.kubernetes.io/part-of: medflow
 spec:
   selector:
     app: notification-service
@@ -15,6 +18,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: notification-service
+  labels:
+    app: notification-service
+    app.kubernetes.io/part-of: medflow
 spec:
   replicas: 1
   selector:
@@ -28,17 +34,49 @@ spec:
       containers:
       - name: notification-service
         image: medflow-notification-service:latest
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8082
+          name: http
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "768Mi"
+            cpu: "800m"
         env:
         - name: SPRING_RABBITMQ_HOST
-          value: "medflow-rabbitmq-service"
+          valueFrom:
+            configMapKeyRef:
+              name: medflow-config
+              key: SPRING_RABBITMQ_HOST
         - name: SPRING_RABBITMQ_PORT
-          value: "5672"
+          valueFrom:
+            configMapKeyRef:
+              name: medflow-config
+              key: SPRING_RABBITMQ_PORT
+        - name: SPRING_RABBITMQ_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: medflow-secrets
+              key: rabbitmq-user
+        - name: SPRING_RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: medflow-secrets
+              key: rabbitmq-password
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 3
         readinessProbe:
           httpGet:
-            path: /actuator/health
+            path: /actuator/health/readiness
             port: 8082
-          initialDelaySeconds: 15
+          initialDelaySeconds: 20
           periodSeconds: 10
+          timeoutSeconds: 3

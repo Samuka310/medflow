@@ -1,6 +1,26 @@
 # Changelog
 
-### Fase 11 - Observabilidade Avançada, Distributed Tracing, Métricas Customizadas & Segurança de Borda (Rate Limiting)
+### Fase 12 - Deploy em Produção, Orquestração Docker Compose, Kubernetes & Finalização do Roadmap
+- **Orquestração de Produção com Docker Compose**:
+  - Enriquecimento do `docker-compose.yml` com *healthchecks* robustos utilizando probes HTTP do Spring Boot Actuator (`/actuator/health`) para `backend`, `notification-service` e `api-gateway`.
+  - Encadeamento determinístico de inicialização (`condition: service_healthy`) garantindo que o gateway só inicie após os microsserviços estarem prontos, e o frontend só após o gateway estar operacional.
+  - Provisionamento automatizado do Grafana sem necessidade de login ou configuração manual de datasource/dashboards.
+- **Infraestrutura Completa e Declarativa para Kubernetes (`k8s/`)**:
+  - **`k8s/secret.yaml`**: Segredos desacoplados para credenciais do PostgreSQL, RabbitMQ e chave criptográfica JWT HMAC-SHA256.
+  - **`k8s/configmap.yaml`**: ConfigMap central com URLs de descoberta e perfis de produção.
+  - **`k8s/postgres.yaml`**: `StatefulSet` com armazenamento persistente via `PersistentVolumeClaim` (5Gi), probes e ClusterIP.
+  - **`k8s/rabbitmq.yaml`**: Broker AMQP com probes TCP socket e interface web de gestão.
+  - **`k8s/backend.yaml`**: `Deployment` de alta disponibilidade (2 réplicas), cotas de recursos (requests: 512Mi/300m, limits: 1536Mi/1500m), probes nativas do Kubernetes (`livenessProbe: /actuator/health/liveness`, `readinessProbe: /actuator/health/readiness`).
+  - **`k8s/notification-service.yaml`**: `Deployment` com cotas de recursos e probes de saúde do Actuator.
+  - **`k8s/api-gateway.yaml`**: Borda reativa com Rate Limiting e probes de saúde.
+  - **`k8s/frontend.yaml`**: Servidor Web Nginx com 2 réplicas, probes HTTP e cotas de recursos.
+  - **`k8s/ingress.yaml`**: Ingress NGINX para roteamento unificado de tráfego externo (`/api/**` para o Gateway e `/` para a SPA).
+  - **`k8s/hpa.yaml`**: `HorizontalPodAutoscaler` elástico para auto-scaling de 2 a 10 pods sob 70% de utilização de CPU.
+  - **`k8s/kustomization.yaml`**: Deploy declarativo com 1 comando via Kustomize (`kubectl apply -k k8s/`).
+- **Automação de CI/CD & Cobertura JaCoCo**:
+  - Vinculação do relatório JaCoCo diretamente à fase `test` do Maven em `backend/pom.xml`.
+  - Atualização do workflow `.github/workflows/ci.yml` para compilação unificada do reactor multi-módulo com `./mvnw clean test`.
+  - Atualização do `README.md` com guia completo de deploy em Kubernetes e tabela de portas.
 - **Segurança de Borda & Rate Limiting no Spring Cloud Gateway (`RateLimiterGlobalFilter.java`)**:
   - Implementação de filtro reativo global de borda (`GlobalFilter`, `Ordered.HIGHEST_PRECEDENCE + 1`), executando logo após a injeção do Correlation ID e antes de qualquer downstream/auth.
   - Proteção por IP em janela deslizante de 60 segundos com limites granulares:

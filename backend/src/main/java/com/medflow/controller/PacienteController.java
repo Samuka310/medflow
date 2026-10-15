@@ -102,9 +102,9 @@ public class PacienteController {
         return ResponseEntity.ok(pacienteService.findResumoById(id));
     }
 
-    @PreAuthorize("hasAnyRole('MEDICO','ADMIN','PACIENTE')")
+    @PreAuthorize("hasRole('ADMIN') or @acessoSecurity.temVinculoAssistencialComPaciente(#id, authentication)")
     @GetMapping("/{id}/clinico")
-    @Operation(summary = "Buscar dados clínicos do paciente por ID", description = "Acesso a dados clínicos confidenciais. Permitido para Médico, Admin e o próprio Paciente.")
+    @Operation(summary = "Buscar dados clínicos do paciente por ID", description = "Acesso a dados clínicos confidenciais. Permitido para Médico com vínculo assistencial, Admin e o próprio Paciente.")
     @ApiResponse(responseCode = "200", description = "Dados clínicos encontrados",
             content = @Content(schema = @Schema(implementation = PacienteClinicoDTO.class)))
     @ApiResponse(responseCode = "403", description = "Acesso negado para dados clínicos",
@@ -158,7 +158,7 @@ public class PacienteController {
         return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.emitirAtestado(id, dto, principal.getName()));
     }
 
-    @PreAuthorize("hasAnyRole('PACIENTE','MEDICO','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @acessoSecurity.donoDaReceita(#receitaId, authentication)")
     @GetMapping("/receitas/{receitaId}/pdf")
     @Operation(summary = "Exportar receita médica em PDF", description = "Gera e faz download do documento oficial em PDF da receita médica prescrita")
     @ApiResponse(responseCode = "200", description = "Documento PDF da receita gerado e transmitido")
@@ -172,7 +172,7 @@ public class PacienteController {
                 .body(pdfBytes);
     }
 
-    @PreAuthorize("hasAnyRole('PACIENTE','MEDICO','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @acessoSecurity.donoDoAtestado(#atestadoId, authentication)")
     @GetMapping("/atestados/{atestadoId}/pdf")
     @Operation(summary = "Exportar atestado médico em PDF", description = "Gera e faz download do documento oficial em PDF do atestado médico emitido")
     @ApiResponse(responseCode = "200", description = "Documento PDF do atestado gerado e transmitido")

@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface ProntuarioRepository extends JpaRepository<Prontuario, UUID> {
     Optional<Prontuario> findByConsultaId(UUID consultaId);
     List<Prontuario> findByConsultaPacienteId(UUID pacienteId);
+    List<Prontuario> findByConsultaMedicoUsuarioEmail(String email);
 }

@@ -86,19 +86,47 @@ class ProntuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Deve buscar prontuário por ID quando médico acessa")
-    void findById_DeveRetornarProntuario_QuandoMedicoAcessa() {
+    @DisplayName("Deve buscar prontuário por ID quando médico possui vínculo assistencial")
+    void findById_DeveRetornarProntuario_QuandoMedicoPossuiVinculo() {
         Usuario medicoUser = new Usuario();
         medicoUser.setId(UUID.randomUUID());
         medicoUser.setRole(Role.MEDICO);
 
+        Paciente paciente = new Paciente();
+        UUID pacienteId = UUID.randomUUID();
+        paciente.setId(pacienteId);
+        consulta.setPaciente(paciente);
+
         when(prontuarioRepository.findById(prontuarioId)).thenReturn(Optional.of(prontuario));
         when(usuarioRepository.findByEmail("medico@medflow.com")).thenReturn(Optional.of(medicoUser));
+        when(consultaRepository.existsByPacienteIdAndMedicoUsuarioEmail(pacienteId, "medico@medflow.com")).thenReturn(true);
 
         ProntuarioDTO resultado = prontuarioService.findById(prontuarioId, "medico@medflow.com");
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getId()).isEqualTo(prontuarioId);
+        verify(auditoriaService).registrarAcao(eq("LEITURA_PRONTUARIO"), eq("Prontuario"), eq(prontuarioId), anyString());
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando médico não possui vínculo assistencial com o paciente")
+    void findById_DeveLancarExcecao_QuandoMedicoNaoPossuiVinculoAssistencial() {
+        Usuario medicoUser = new Usuario();
+        medicoUser.setId(UUID.randomUUID());
+        medicoUser.setRole(Role.MEDICO);
+
+        Paciente paciente = new Paciente();
+        UUID pacienteId = UUID.randomUUID();
+        paciente.setId(pacienteId);
+        consulta.setPaciente(paciente);
+
+        when(prontuarioRepository.findById(prontuarioId)).thenReturn(Optional.of(prontuario));
+        when(usuarioRepository.findByEmail("medico-estranho@medflow.com")).thenReturn(Optional.of(medicoUser));
+        when(consultaRepository.existsByPacienteIdAndMedicoUsuarioEmail(pacienteId, "medico-estranho@medflow.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> prontuarioService.findById(prontuarioId, "medico-estranho@medflow.com"))
+                .isInstanceOf(AcessoNegadoException.class)
+                .hasMessageContaining("vínculo assistencial");
     }
 
     @Test
@@ -125,5 +153,44 @@ class ProntuarioServiceTest {
         assertThatThrownBy(() -> prontuarioService.findById(prontuarioId, "outro@medflow.com"))
                 .isInstanceOf(AcessoNegadoException.class)
                 .hasMessageContaining("Acesso negado: Este prontuário não pertence a você");
+    }
+
+    @Test
+    @DisplayName("Deve retornar apenas prontuários do médico autenticado no histórico")
+    void findMyHistorico_DeveRetornarProntuariosDoMedico() {
+        Usuario medicoUser = new Usuario();
+        medicoUser.setEmail("medico@medflow.com");
+        medicoUser.setRole(Role.MEDICO);
+
+        when(usuarioRepository.findByEmail("medico@medflow.com")).thenReturn(Optional.of(medicoUser));
+        when(prontuarioRepository.findByConsultaMedicoUsuarioEmail("medico@medflow.com")).thenReturn(java.util.List.of(prontuario));
+
+        java.util.List<ProntuarioDTO> historico = prontuarioService.findMyHistorico("medico@medflow.com");
+
+        assertThat(historico).hasSize(1);
+        verify(prontuarioRepository).findByConsultaMedicoUsuarioEmail("medico@medflow.com");
+        verify(prontuarioRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("Deve retornar histórico do paciente buscando pelo email sem scan em memória")
+    void findMyHistorico_DeveRetornarProntuariosDoPaciente() {
+        Usuario pacienteUser = new Usuario();
+        pacienteUser.setEmail("paciente@medflow.com");
+        pacienteUser.setRole(Role.PACIENTE);
+
+        Paciente paciente = new Paciente();
+        UUID pacienteId = UUID.randomUUID();
+        paciente.setId(pacienteId);
+
+        when(usuarioRepository.findByEmail("paciente@medflow.com")).thenReturn(Optional.of(pacienteUser));
+        when(pacienteRepository.findByUsuarioEmail("paciente@medflow.com")).thenReturn(Optional.of(paciente));
+        when(prontuarioRepository.findByConsultaPacienteId(pacienteId)).thenReturn(java.util.List.of(prontuario));
+
+        java.util.List<ProntuarioDTO> historico = prontuarioService.findMyHistorico("paciente@medflow.com");
+
+        assertThat(historico).hasSize(1);
+        verify(pacienteRepository).findByUsuarioEmail("paciente@medflow.com");
+        verify(pacienteRepository, never()).findAll();
     }
 }

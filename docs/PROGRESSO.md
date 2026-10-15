@@ -55,9 +55,28 @@
 | :---: | :---: | :---: | :---: | :---: |
 | **Épico 0** | **0.1** Segredos fora do Git | Concluído e verificado | Commit feat(security): remove hardcoded secrets, add env injection and gitleaks | 112 testes OK, frontend build OK, .env.example, .gitleaks.toml, k8s/external-secret.yaml |
 | **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Concluído e verificado | Commit feat(security): migrate JWT to RS256 with kid, rotation and refresh token | 120 testes OK (5 novos), Flyway V10, RS256 assimétrico, replay detection |
-| **Épico 0** | **0.3** Correção vazamento prontuários | Não iniciado | - | - |
+| **Épico 0** | **0.3** Correção vazamento prontuários | Concluído e verificado | Commit feat(security): enforce care relationship and eliminate IDOR in medical records | 124 testes OK (+4 novos), ABAC de vínculo assistencial, bloqueio de IDOR em prontuários e PDFs |
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Não iniciado | - | - |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Não iniciado | - | - |
+
+### Plano Técnico — Item 0.3: Vínculo Assistencial e Proteção IDOR em Prontuários
+- **O que existe hoje:**
+  - `ProntuarioService.findMyHistorico` executa `prontuarioRepository.findAll()` para médicos, vazando prontuários de toda a instituição.
+  - `ProntuarioService.findById` valida posse apenas quando o usuário é `ROLE_PACIENTE`. Médicos podiam acessar prontuário de qualquer paciente sem vínculo assistencial.
+  - `findById` registrava auditoria de escrita ("SALVAR_PRONTUARIO") em requisição de leitura.
+  - `PacienteController` em `/{id}/clinico` permitia acesso a qualquer paciente autenticado sem validação de vínculo/propriedade.
+- **O que será alterado:**
+  - Adicionar `findByConsultaMedicoUsuarioEmail(String email)` em `ProntuarioRepository`.
+  - Atualizar `ProntuarioService.findMyHistorico` para médicos utilizarem exclusivamente busca com filtro pelo e-mail do médico logado.
+  - Atualizar `ProntuarioService.findById` para exigir **vínculo assistencial** (`existsByPacienteIdAndMedicoUsuarioEmail`) para médicos, lançando `403 AcessoNegadoException` se não houver vínculo.
+  - Corrigir ação de auditoria de leitura de prontuário para `LEITURA_PRONTUARIO`.
+  - Atualizar `AcessoSecurity.temVinculoAssistencialComPaciente` e proteger `PacienteController.findClinicoById` com `@acessoSecurity`.
+  - Adicionar testes de permissão negativa comprovando o bloqueio de médicos sem vínculo e pacientes bisbilhoteiros.
+- **Riscos & Mitigações:**
+  - *Risco:* Médicos legítimos com consultas marcadas terem acesso bloqueado.
+  - *Mitigação:* A verificação valida consultas passadas e futuras entre o médico e o paciente no banco de dados.
+- **Como reverter:**
+  - Reverter via `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.2: Migração JWT para RS256 com kid, rotação e Refresh Token
 - **O que existe hoje:**

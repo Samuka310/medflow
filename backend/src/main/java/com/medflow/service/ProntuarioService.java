@@ -53,16 +53,14 @@ public class ProntuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
-            Paciente paciente = pacienteRepository.findAll().stream()
-                    .filter(p -> p.getUsuario().getId().equals(usuario.getId()))
-                    .findFirst()
+            Paciente paciente = pacienteRepository.findByUsuarioEmail(email)
                     .orElseThrow(() -> new RuntimeException("Paciente não encontrado para este usuário."));
 
             return prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
         } else if (usuario.getRole() == com.medflow.entity.enums.Role.MEDICO) {
-            return prontuarioRepository.findAll().stream()
+            return prontuarioRepository.findByConsultaMedicoUsuarioEmail(email).stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
         }
@@ -75,15 +73,23 @@ public class ProntuarioService {
         Prontuario prontuario = prontuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Prontuário não encontrado."));
                 
-        Usuario usuario = usuarioRepository.findByEmail(email).get();
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
         
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
-            if (!prontuario.getConsulta().getPaciente().getUsuario().getId().equals(usuario.getId())) {
+            if (prontuario.getConsulta() == null || prontuario.getConsulta().getPaciente() == null
+                    || prontuario.getConsulta().getPaciente().getUsuario() == null
+                    || !prontuario.getConsulta().getPaciente().getUsuario().getId().equals(usuario.getId())) {
                 throw new com.medflow.exception.AcessoNegadoException("Acesso negado: Este prontuário não pertence a você.");
+            }
+        } else if (usuario.getRole() == com.medflow.entity.enums.Role.MEDICO) {
+            if (prontuario.getConsulta() == null || prontuario.getConsulta().getPaciente() == null
+                    || !consultaRepository.existsByPacienteIdAndMedicoUsuarioEmail(prontuario.getConsulta().getPaciente().getId(), email)) {
+                throw new com.medflow.exception.AcessoNegadoException("Acesso negado: Médico não possui vínculo assistencial com o paciente deste prontuário.");
             }
         }
         
-        auditoriaService.registrarAcao("SALVAR_PRONTUARIO", "Prontuario", prontuario.getId(), "Prontuario modificado pelo medico");
+        auditoriaService.registrarAcao("LEITURA_PRONTUARIO", "Prontuario", prontuario.getId(), "Leitura de prontuário realizada por: " + email);
         return mapToDTO(prontuario);
     }
 

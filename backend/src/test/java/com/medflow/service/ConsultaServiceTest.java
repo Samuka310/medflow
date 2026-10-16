@@ -224,7 +224,7 @@ class ConsultaServiceTest {
     }
 
     @Test
-    @DisplayName("Deve ordenar a fila médica priorizando triagem de Manchester (EMERGÊNCIA no topo)")
+    @DisplayName("Deve ordenar a fila médica priorizando triagem de Manchester (EMERGÊNCIA no topo) sem N+1")
     void agendaHoje_DevePriorizarManchester() {
         Consulta consultaEmergencia = new Consulta();
         UUID cEmergenciaId = UUID.randomUUID();
@@ -242,15 +242,17 @@ class ConsultaServiceTest {
 
         Triagem triagemEmergencia = new Triagem();
         triagemEmergencia.setPrioridade(PrioridadeTriagem.EMERGENCIA);
+        triagemEmergencia.setConsulta(consultaEmergencia);
 
         Triagem triagemBaixa = new Triagem();
         triagemBaixa.setPrioridade(PrioridadeTriagem.BAIXA);
+        triagemBaixa.setConsulta(consultaBaixa);
 
         when(medicoRepository.findByUsuarioEmail("medico@medflow.com")).thenReturn(Optional.of(medico));
         when(consultaRepository.findByMedicoIdAndDataHoraBetween(eq(medicoId), any(), any()))
                 .thenReturn(new java.util.ArrayList<>(List.of(consultaBaixa, consultaEmergencia)));
-        when(triagemRepository.findByConsultaId(cEmergenciaId)).thenReturn(Optional.of(triagemEmergencia));
-        when(triagemRepository.findByConsultaId(cBaixaId)).thenReturn(Optional.of(triagemBaixa));
+        when(triagemRepository.findByConsultaIdIn(any())).thenReturn(List.of(triagemBaixa, triagemEmergencia));
+        when(pagamentoRepository.findByConsultaIdIn(any())).thenReturn(List.of());
 
         List<ConsultaDTO> fila = consultaService.agendaHoje("medico@medflow.com");
 
@@ -258,5 +260,58 @@ class ConsultaServiceTest {
         // Emergência deve vir na frente mesmo com horário posterior
         assertThat(fila.get(0).getId()).isEqualTo(cEmergenciaId);
         assertThat(fila.get(1).getId()).isEqualTo(cBaixaId);
+
+        // Verificação anti-N+1: NUNCA deve chamar findByConsultaId individualmente
+        verify(triagemRepository, never()).findByConsultaId(any());
+        verify(pagamentoRepository, never()).findByConsultaId(any());
+        verify(triagemRepository, times(1)).findByConsultaIdIn(any());
+        verify(pagamentoRepository, times(1)).findByConsultaIdIn(any());
+    }
+
+    @Test
+    @DisplayName("Deve executar estritamente 1 query em lote de triagens e 1 de pagamentos independentemente da quantidade de consultas")
+    void agendaHoje_DeveExecutarApenasUmaQueryEmLoteParaTriagensEPagamentos_MesmoComMultiplasConsultas() {
+        List<Consulta> listaConsultas = new java.util.ArrayList<>();
+        List<Triagem> listaTriagens = new java.util.ArrayList<>();
+        List<Pagamento> listaPagamentos = new java.util.ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+            Consulta c = new Consulta();
+            c.setId(UUID.randomUUID());
+            c.setMedico(medico);
+            c.setPaciente(paciente);
+            c.setDataHora(LocalDateTime.now().plusHours(i + 1));
+            listaConsultas.add(c);
+
+            Triagem t = new Triagem();
+            t.setId(UUID.randomUUID());
+            t.setConsulta(c);
+            t.setPrioridade(PrioridadeTriagem.MEDIA);
+            listaTriagens.add(t);
+
+            Pagamento p = new Pagamento();
+            p.setId(UUID.randomUUID());
+            p.setConsulta(c);
+            listaPagamentos.add(p);
+        }
+
+        when(medicoRepository.findByUsuarioEmail("medico@medflow.com")).thenReturn(Optional.of(medico));
+        when(consultaRepository.findByMedicoIdAndDataHoraBetween(eq(medicoId), any(), any()))
+                .thenReturn(listaConsultas);
+        when(triagemRepository.findByConsultaIdIn(any())).thenReturn(listaTriagens);
+        when(pagamentoRepository.findByConsultaIdIn(any())).thenReturn(listaPagamentos);
+
+        List<ConsultaDTO> fila = consultaService.agendaHoje("medico@medflow.com");
+
+        assertThat(fila).hasSize(5);
+        for (ConsultaDTO dto : fila) {
+            assertThat(dto.getPagamentoId()).isNotNull();
+        }
+
+        // Garante que mesmo com 5 consultas e dezenas de comparações no sort, apenas 1 query de cada é feita
+        verify(triagemRepository, times(1)).findByConsultaIdIn(any());
+        verify(pagamentoRepository, times(1)).findByConsultaIdIn(any());
+        verify(triagemRepository, never()).findByConsultaId(any());
+        verify(pagamentoRepository, never()).findByConsultaId(any());
     }
 }

@@ -8,11 +8,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface PagamentoRepository extends JpaRepository<Pagamento, UUID> {
     Optional<Pagamento> findByConsultaId(UUID consultaId);
+    List<Pagamento> findByConsultaIdIn(Collection<UUID> consultaIds);
 
     @Query("""
         SELECT COALESCE(SUM(p.valor), 0) FROM Pagamento p

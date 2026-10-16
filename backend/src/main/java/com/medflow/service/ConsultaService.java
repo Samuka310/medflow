@@ -9,6 +9,7 @@ import com.medflow.entity.Pagamento;
 import com.medflow.entity.enums.ConsultaStatus;
 import com.medflow.entity.enums.FormaPagamento;
 import com.medflow.entity.enums.PagamentoStatus;
+import com.medflow.entity.enums.PrioridadeTriagem;
 import com.medflow.event.ConsultaEvento;
 import com.medflow.exception.ConflitoAgendaException;
 import com.medflow.exception.RecursoNaoEncontradoException;
@@ -29,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -232,31 +235,61 @@ public class ConsultaService {
         LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
 
         List<Consulta> consultas = consultaRepository.findByMedicoIdAndDataHoraBetween(medico.getId(), startOfDay, endOfDay);
+        if (consultas.isEmpty()) {
+            return Collections.emptyList();
+        }
 
+        List<UUID> consultaIds = consultas.stream().map(Consulta::getId).toList();
+
+        // Carregamento em lote de triagens (1 query única)
+        Map<UUID, Integer> priorityMap = triagemRepository.findByConsultaIdIn(consultaIds).stream()
+                .filter(t -> t.getConsulta() != null)
+                .collect(Collectors.toMap(
+                        t -> t.getConsulta().getId(),
+                        t -> calculatePriorityWeight(t.getPrioridade()),
+                        (p1, p2) -> Math.max(p1, p2)
+                ));
+
+        // Carregamento em lote de pagamentos (1 query única)
+        Map<UUID, UUID> pagamentoMap = pagamentoRepository.findByConsultaIdIn(consultaIds).stream()
+                .filter(p -> p.getConsulta() != null)
+                .collect(Collectors.toMap(
+                        p -> p.getConsulta().getId(),
+                        Pagamento::getId,
+                        (p1, p2) -> p1
+                ));
+
+        // Ordenação em memória sem qualquer query disparada dentro do comparator
         consultas.sort((c1, c2) -> {
-            int p1 = getPriorityWeight(c1.getId());
-            int p2 = getPriorityWeight(c2.getId());
+            int p1 = priorityMap.getOrDefault(c1.getId(), 0);
+            int p2 = priorityMap.getOrDefault(c2.getId(), 0);
             if (p1 != p2) {
                 return Integer.compare(p2, p1);
             }
             return c1.getDataHora().compareTo(c2.getDataHora());
         });
 
-        return consultas.stream().map(this::mapToDTO).collect(Collectors.toList());
+        return consultas.stream()
+                .map(c -> mapToDTO(c, true, pagamentoMap.get(c.getId())))
+                .collect(Collectors.toList());
     }
 
-    private int getPriorityWeight(UUID consultaId) {
-        return triagemRepository.findByConsultaId(consultaId)
-            .map(t -> switch (t.getPrioridade()) {
-                case EMERGENCIA -> 4;
-                case ALTA -> 3;
-                case MEDIA -> 2;
-                case BAIXA -> 1;
-                default -> 0;
-            }).orElse(0);
+    private int calculatePriorityWeight(PrioridadeTriagem prioridade) {
+        if (prioridade == null) return 0;
+        return switch (prioridade) {
+            case EMERGENCIA -> 4;
+            case ALTA -> 3;
+            case MEDIA -> 2;
+            case BAIXA -> 1;
+            default -> 0;
+        };
     }
 
     private ConsultaDTO mapToDTO(Consulta consulta) {
+        return mapToDTO(consulta, false, null);
+    }
+
+    private ConsultaDTO mapToDTO(Consulta consulta, boolean preloaded, UUID preloadedPagamentoId) {
         ConsultaDTO dto = new ConsultaDTO();
         dto.setId(consulta.getId());
         dto.setMedicoId(consulta.getMedico().getId());
@@ -272,9 +305,13 @@ public class ConsultaService {
         dto.setDataHora(consulta.getDataHora());
         dto.setStatus(consulta.getStatus());
 
-        pagamentoRepository.findByConsultaId(consulta.getId()).ifPresent(p -> {
-            dto.setPagamentoId(p.getId());
-        });
+        if (preloaded) {
+            dto.setPagamentoId(preloadedPagamentoId);
+        } else {
+            pagamentoRepository.findByConsultaId(consulta.getId()).ifPresent(p -> {
+                dto.setPagamentoId(p.getId());
+            });
+        }
 
         return dto;
     }

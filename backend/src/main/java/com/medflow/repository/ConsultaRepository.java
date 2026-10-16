@@ -17,6 +17,21 @@ public interface ConsultaRepository extends JpaRepository<Consulta, UUID> {
     boolean existsByPacienteIdAndMedicoUsuarioEmail(UUID pacienteId, String email);
 
     @Query("""
+        SELECT c FROM Consulta c
+        JOIN FETCH c.paciente p
+        JOIN FETCH p.usuario pu
+        JOIN FETCH c.medico m
+        JOIN FETCH m.usuario mu
+        WHERE c.medico.id = :medicoId
+          AND c.dataHora >= :start AND c.dataHora <= :end
+    """)
+    List<Consulta> findAgendaHojeComRelacionamentos(
+        @Param("medicoId") UUID medicoId,
+        @Param("start") LocalDateTime start,
+        @Param("end") LocalDateTime end
+    );
+
+    @Query("""
         SELECT COUNT(c) > 0 FROM Consulta c
         WHERE c.medico.id = :medicoId
           AND c.status <> com.medflow.entity.enums.ConsultaStatus.CANCELADA

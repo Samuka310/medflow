@@ -57,7 +57,23 @@
 | **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Concluído e verificado | Commit feat(security): migrate JWT to RS256 with kid, rotation and refresh token | 120 testes OK (5 novos), Flyway V10, RS256 assimétrico, replay detection |
 | **Épico 0** | **0.3** Correção vazamento prontuários | Concluído e verificado | Commit feat(security): enforce care relationship and eliminate IDOR in medical records | 124 testes OK (+4 novos), ABAC de vínculo assistencial, bloqueio de IDOR em prontuários e PDFs |
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Concluído e verificado | Commit feat(perf): replace in-memory entity scans with indexed queries (item 0.4) | 129 testes OK (+5 novos), Flyway V11, elimina scans em ProntuarioService e FaturamentoService |
-| **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Não iniciado | - | - |
+| **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Concluído e verificado | Commit feat(perf): eliminate N+1 queries in medical schedule sorting (item 0.5) | 130 testes OK (+2 novos), eliminação de N+1 no sort TimSort e no mapeamento DTO via carregamento em lote |
+
+### Plano Técnico — Item 0.5: Eliminação de N+1 na Ordenação da Fila Médica
+- **O que existe hoje:**
+  - Em `ConsultaService.agendaHoje`, a ordenação de prioridade Manchester executava `triagemRepository.findByConsultaId(id)` dentro do comparator (`consultas.sort(...)`), gerando $O(N \log N)$ queries concorrentes ao banco para cada comparação de pares.
+  - No mapeamento final para DTO, `pagamentoRepository.findByConsultaId(consulta.getId())` era chamado para cada item da lista (mais $N$ queries).
+- **O que será alterado:**
+  - Adicionar `findByConsultaIdIn(Collection<UUID> consultaIds)` em `TriagemRepository` e `PagamentoRepository`.
+  - Atualizar `ConsultaService.agendaHoje` para carregar as triagens e pagamentos de todas as consultas do dia em lote (2 queries únicas em vez de centenas).
+  - Pré-computar os pesos de prioridade em um `Map<UUID, Integer>` em memória e utilizar esse mapa estático durante a ordenação, com zero queries disparadas durante o sort.
+  - Repassar os IDs de pagamento pré-carregados para o mapeamento DTO, eliminando o loop de consultas a pagamentos.
+  - Atualizar e expandir a suíte de testes em `ConsultaServiceTest` garantindo que `findByConsultaId` nunca é chamado no fluxo de agenda e que o número de queries é constante.
+- **Riscos & Mitigações:**
+  - *Risco:* Alteração na ordem dos pacientes na fila da agenda médica.
+  - *Mitigação:* Testes unitários com casos de teste verificando que a ordem estrita do Protocolo de Manchester (Emergência > Alta > Média > Baixa > Horário) permanece rigorosamente intacta.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.4: Varredura em Memória e Substituição por Queries Indexadas
 - **O que existe hoje:**

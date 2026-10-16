@@ -61,7 +61,28 @@
 | **Épico 0** | **0.6** Auditoria estruturada e confiável | Concluído e verificado | Commit feat(audit): structured transactional audit and clinical read tracking (item 0.6) | 134 testes OK (+4 novos), eliminação de System.err, REQUIRES_NEW, métricas Micrometer, eventos de alerta, Flyway V12 |
 | **Épico 0** | **0.7** Rate limit distribuído via Redis | Concluído e verificado | Commit feat(security): distributed rate limiting via redis with dual-dimension ip and user throttling (item 0.7) | 10 testes Gateway OK (8 rate limiter), 134 testes Backend OK, Redis no Docker Compose e K8s, RFC 7807 429 |
 | **Épico 0** | **0.8** PostgreSQL HA e Pool de Conexões | Concluído e verificado | Commit feat(db): postgresql ha cluster with cloudnativepg, pgbouncer, wal archiving and pitr runbook (item 0.8) | CloudNativePG 3 réplicas, PgBouncer pooler, ScheduledBackup PITR, docs/database/DISASTER_RECOVERY.md, scripts/test-db-restore.sh/.ps1, HikariCP calibrado, 134 testes OK |
-| **Épico 0** | **0.9** Logs Centralizados e Mascaramento de PII | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+| **Épico 0** | **0.9** Logs Centralizados e Mascaramento de PII | Concluído e verificado | Commit feat(observability): structured json logging with logstash, pii masking and loki/promtail integration (item 0.9) | 146 testes Backend OK (+12 novos em PiiMasker e Tracing), 10 testes Gateway OK, logback-spring.xml JSON + PII masking, Loki + Promtail no Docker Compose e K8s, Loki datasource provisionado no Grafana |
+| **Épico 0** | **0.10** Hardening Base e Segurança de Borda | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+
+### Plano Técnico — Item 0.10: Hardening Base, Cabeçalhos de Segurança OWASP, Não-Root e NetworkPolicies
+- **O que existe hoje:**
+  - Cabeçalhos de segurança HTTP (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) não estão injetados de forma padronizada no API Gateway nem no Spring Security.
+  - O Swagger/OpenAPI está habilitado em todos os perfis e não possui controle de desativação em produção clínica.
+  - Endpoints do Actuator expõem detalhes adicionais sem filtragem estrita no gateway.
+  - As imagens Docker (`Dockerfile`) dos serviços executam com usuário `root` por padrão, violando o princípio do menor privilégio e recomendações do CIS Benchmark e Trivy.
+  - Ausência de `NetworkPolicy` no Kubernetes para isolar o tráfego leste-oeste (o banco de dados e mensageria ficam acessíveis a qualquer pod do namespace).
+- **O que será alterado:**
+  - Adicionar filtro de cabeçalhos de segurança no API Gateway (`SecurityHeadersFilter.java`) e no `SecurityConfig.java` do backend injetando HSTS, CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` e `Permissions-Policy`.
+  - Configurar proteção ou desativação do Swagger UI (`/swagger-ui/**`, `/v3/api-docs/**`) sob o perfil `prod`.
+  - Restringir exposição do Actuator para permitir publicamente apenas o `/actuator/health` (liveness/readiness), mantendo `/prometheus` acessível estritamente para o pod de monitoramento.
+  - Atualizar os `Dockerfile` dos serviços backend, gateway, notification-service e frontend para rodar com usuário não-root (UID/GID 10001).
+  - Criar manifestos de `NetworkPolicy` no Kubernetes (`k8s/network-policies.yaml`) impondo Default-Deny e liberando tráfego estritamente necessário (Gateway -> Backend -> DB / RabbitMQ / Redis).
+  - Criar testes unitários para validar a presença de todos os cabeçalhos de segurança OWASP em requisições HTTP.
+- **Riscos & Mitigações:**
+  - *Risco:* Inclusão de CSP rigoroso bloquear execução de scripts legítimos da SPA React.
+  - *Mitigação:* Testar o build de frontend e calibrar diretivas do CSP (`default-src 'self'`, `connect-src 'self' ...`).
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.9: Logs Centralizados (Loki/Promtail) e Mascaramento de PII (LGPD)
 - **O que existe hoje:**

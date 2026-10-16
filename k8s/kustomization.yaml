@@ -16,3 +16,4 @@ resources:
   - frontend.yaml
   - ingress.yaml
   - hpa.yaml
+  - loki-promtail.yaml

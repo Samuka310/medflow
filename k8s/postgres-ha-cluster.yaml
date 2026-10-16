@@ -1,0 +1,80 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: medflow-db-ha
+  labels:
+    app: medflow-db-ha
+    app.kubernetes.io/part-of: medflow
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+
+  # Configuração de alta disponibilidade e quorum sem perda de dados
+  minSyncReplicas: 1
+  maxSyncReplicas: 2
+
+  # Políticas de tolerância a falhas e dispersão física entre zonas
+  affinity:
+    podAntiAffinityType: preferred
+    topologyKey: topology.kubernetes.io/zone
+
+  # Bootstrap com usuário e banco da aplicação MedFlow
+  bootstrap:
+    initdb:
+      database: medflow
+      owner: medflow
+      secret:
+        name: medflow-secrets
+
+  # Recursos computacionais dedicados para produção hospitalar
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+  # Armazenamento persistente de alta performance (SSD / provisioner dinâmico)
+  storage:
+    size: 20Gi
+
+  # Parâmetros otimizados do PostgreSQL 16 para ambiente hospitalar
+  postgresql:
+    parameters:
+      shared_buffers: "512MB"
+      work_mem: "16MB"
+      maintenance_work_mem: "128MB"
+      effective_cache_size: "1536MB"
+      wal_level: "replica"
+      max_wal_size: "4GB"
+      min_wal_size: "512MB"
+      checkpoint_completion_target: "0.9"
+      checkpoint_timeout: "15min"
+      archive_timeout: "5min"
+      track_commit_timestamp: "on"
+      statement_timeout: "30000"
+
+  # Arquivamento contínuo de WAL e backup em Object Store (S3 / MinIO) para PITR
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://medflow-backups/postgres-wal/"
+      endpointURL: "https://s3.amazonaws.com"
+      s3Credentials:
+        accessKeyId:
+          name: medflow-secrets
+          key: s3-access-key
+        secretAccessKey:
+          name: medflow-secrets
+          key: s3-secret-key
+      wal:
+        compression: gzip
+        encryption: aes256
+      data:
+        compression: gzip
+        encryption: aes256
+    retentionPolicy: "30d"
+
+  # Métricas integradas para Prometheus / Grafana
+  monitoring:
+    enablePodMonitor: true

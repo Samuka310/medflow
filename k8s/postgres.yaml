@@ -1,3 +1,8 @@
+# =============================================================================
+# MedFlow - PostgreSQL Standalone (Ambientes de Desenvolvimento / Staging Local)
+# OBS: Em produção hospitalar, utilize 'postgres-ha-cluster.yaml' (CloudNativePG)
+# com 3 réplicas, failover automático e pooler PgBouncer ('postgres-pgbouncer.yaml').
+# =============================================================================
 apiVersion: v1
 kind: Service
 metadata:

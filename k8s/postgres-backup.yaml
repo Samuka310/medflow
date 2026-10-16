@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: medflow-db-backup-daily
+  labels:
+    app: medflow-db-ha
+    app.kubernetes.io/part-of: medflow
+spec:
+  cluster:
+    name: medflow-db-ha
+  schedule: "0 0 2 * * *" # Executa diariamente às 02:00 UTC (janela de menor concorrência clínica)
+  immediate: true
+  backupOwnerReference: self

@@ -60,7 +60,28 @@
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Concluído e verificado | Commit feat(perf): eliminate N+1 queries in medical schedule sorting (item 0.5) | 130 testes OK (+2 novos), eliminação de N+1 no sort TimSort e no mapeamento DTO via carregamento em lote |
 | **Épico 0** | **0.6** Auditoria estruturada e confiável | Concluído e verificado | Commit feat(audit): structured transactional audit and clinical read tracking (item 0.6) | 134 testes OK (+4 novos), eliminação de System.err, REQUIRES_NEW, métricas Micrometer, eventos de alerta, Flyway V12 |
 | **Épico 0** | **0.7** Rate limit distribuído via Redis | Concluído e verificado | Commit feat(security): distributed rate limiting via redis with dual-dimension ip and user throttling (item 0.7) | 10 testes Gateway OK (8 rate limiter), 134 testes Backend OK, Redis no Docker Compose e K8s, RFC 7807 429 |
-| **Épico 0** | **0.8** PostgreSQL HA e Pool de Conexões | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+| **Épico 0** | **0.8** PostgreSQL HA e Pool de Conexões | Concluído e verificado | Commit feat(db): postgresql ha cluster with cloudnativepg, pgbouncer, wal archiving and pitr runbook (item 0.8) | CloudNativePG 3 réplicas, PgBouncer pooler, ScheduledBackup PITR, docs/database/DISASTER_RECOVERY.md, scripts/test-db-restore.sh/.ps1, HikariCP calibrado, 134 testes OK |
+| **Épico 0** | **0.9** Logs Centralizados e Mascaramento de PII | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+
+### Plano Técnico — Item 0.9: Logs Centralizados (Loki/Promtail) e Mascaramento de PII (LGPD)
+- **O que existe hoje:**
+  - O backend e os microserviços utilizam logs em texto simples no console sem formatação JSON estruturada para ingestão em stacks centralizadas.
+  - Não há stack de agregação centralizada de logs (Grafana Loki + Promtail/Fluent Bit) provisionada no `docker-compose.yml` ou `k8s/`.
+  - Dados sensíveis e identificadores pessoais (PII) segundo a LGPD (Art. 5º II e Art. 11), como CPF (`\d{3}\.\d{3}\.\d{3}-\d{2}`), e-mail e termos de anotações clínicas, correm o risco de vazamento em logs de erro ou payloads de requisição.
+  - Os logs não injetam formalmente campos estruturados de rastreamento (`traceId`, `spanId`, `correlationId`) no formato JSON do Loki.
+- **O que será alterado:**
+  - Configurar Logback estruturado em JSON com `logstash-logback-encoder` (`logback-spring.xml`) no backend e api-gateway.
+  - Implementar mascarador de logs customizado (`PiiMaskingConverter` / `PiiJsonMasker`) para sanitizar automaticamente:
+    * CPF: `***.***.999-**`
+    * E-mail: `u***@dominio.com`
+    * Dados clínicos protegidos e tokens de autenticação.
+  - Provisionar serviço Grafana Loki e coletor Promtail no `docker-compose.yml` e manifestos no Kubernetes (`k8s/loki-promtail.yaml`) com datasource integrado no Grafana.
+  - Criar testes unitários para validar que logs gerados com PII são rigorosamente mascarados antes da saída.
+- **Riscos & Mitigações:**
+  - *Risco:* Degradação de performance devido a expressões regulares em grande volume de logs.
+  - *Mitigação:* Compilar patterns de Regex estáticos, limitar tamanho de buffer inspecionado e utilizar appender assíncrono (`AsyncAppender`).
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.8: Alta Disponibilidade PostgreSQL (CloudNativePG/Patroni), PgBouncer e PITR
 - **O que existe hoje:**

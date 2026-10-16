@@ -7,7 +7,8 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: "prod"
   SERVER_PORT: "8081"
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://medflow-db-service:5432/medflow"
+  # URL padrão apontando para o serviço de banco; em cluster HA com PgBouncer utilizar medflow-db-pooler-rw:5432
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://medflow-db-service:5432/medflow?prepareThreshold=0"
   SPRING_RABBITMQ_HOST: "medflow-rabbitmq-service"
   SPRING_RABBITMQ_PORT: "5672"
   NOTIFICATION_SERVICE_URL: "http://notification-service:8082"

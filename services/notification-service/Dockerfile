@@ -9,7 +9,15 @@ RUN mvn clean package -DskipTests -pl libs/medflow-events,services/notification-
 # Run stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/services/notification-service/target/*.jar app.jar
+
+# Criar grupo e usuário de sistema não-root para execução segura (CIS Benchmark)
+RUN addgroup -g 10001 -S medflow && \
+    adduser -u 10001 -S medflow -G medflow && \
+    chown -R medflow:medflow /app
+
+COPY --from=build --chown=medflow:medflow /app/services/notification-service/target/*.jar app.jar
+
+USER 10001:10001
 
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "app.jar"]

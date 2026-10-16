@@ -17,3 +17,5 @@ resources:
   - ingress.yaml
   - hpa.yaml
   - loki-promtail.yaml
+  - network-policies.yaml
+

@@ -62,7 +62,45 @@
 | **Épico 0** | **0.7** Rate limit distribuído via Redis | Concluído e verificado | Commit feat(security): distributed rate limiting via redis with dual-dimension ip and user throttling (item 0.7) | 10 testes Gateway OK (8 rate limiter), 134 testes Backend OK, Redis no Docker Compose e K8s, RFC 7807 429 |
 | **Épico 0** | **0.8** PostgreSQL HA e Pool de Conexões | Concluído e verificado | Commit feat(db): postgresql ha cluster with cloudnativepg, pgbouncer, wal archiving and pitr runbook (item 0.8) | CloudNativePG 3 réplicas, PgBouncer pooler, ScheduledBackup PITR, docs/database/DISASTER_RECOVERY.md, scripts/test-db-restore.sh/.ps1, HikariCP calibrado, 134 testes OK |
 | **Épico 0** | **0.9** Logs Centralizados e Mascaramento de PII | Concluído e verificado | Commit feat(observability): structured json logging with logstash, pii masking and loki/promtail integration (item 0.9) | 146 testes Backend OK (+12 novos em PiiMasker e Tracing), 10 testes Gateway OK, logback-spring.xml JSON + PII masking, Loki + Promtail no Docker Compose e K8s, Loki datasource provisionado no Grafana |
-| **Épico 0** | **0.10** Hardening Base e Segurança de Borda | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+| **Épico 0** | **0.10** Hardening Base e Segurança de Borda | Concluído e verificado | Commit feat(security): owasp security headers, non-root containers and zero-trust network policies (item 0.10) | 148 testes Backend OK, 13 testes Gateway OK, cabeçalhos OWASP (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), Dockerfiles não-root (UID 10001/nginx), k8s/network-policies.yaml, Swagger desabilitado em prod |
+| **Épico 1** | **1.1** Modelo de Tenant e Unidades | Planejado | Branch feat/epico-1-multi-tenancy | Aguardando autorização |
+
+### Resumo do Épico 0 — Correções Imediatas Apontadas na Auditoria (P0)
+- **Status:** **100% CONCLUÍDO E VALIDADO**
+- **Total de Testes:** **161 testes automatizados passando** (148 Backend + 13 Gateway)
+- **Baseline Inicial:** 112 testes -> **161 testes** (+49 novos testes unitários e de integração criados e verdes)
+- **Vulnerabilidades Corrigidas:**
+  1. Segredos e senhas expostos removidos do repositório Git, injeção de variáveis de ambiente e `.gitleaks.toml`.
+  2. Rotação assimétrica de chaves JWT RS256 com `kid`, tokens de curta duração e Refresh Tokens com detecção de replay.
+  3. Eliminação total de vazamento de prontuários e IDOR com ABAC de vínculo assistencial em prontuários e PDFs.
+  4. Eliminação de varreduras em memória via queries SQL indexadas e Flyway V11.
+  5. Eliminação de $O(N \log N)$ queries N+1 na ordenação de agenda médica via pré-carregamento em lote.
+  6. Auditoria estruturada, transacional (`REQUIRES_NEW`), rastreamento de leituras clínicas e índices Flyway V12.
+  7. Rate limit distribuído via Redis em dupla dimensão (IP e Usuário) com fallback resiliente.
+  8. PostgreSQL HA com operador CloudNativePG (3 instâncias, quorum, anti-afinidade), PgBouncer, PITR e runbook de desastres.
+  9. Logs centralizados JSON estruturados via Logstash/Logback, Loki + Promtail, tracing distribuído e mascaramento estrito de PII (LGPD).
+  10. Hardening base OWASP (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), CORS sanitizado, imagens não-root (UID 10001) e NetworkPolicies zero-trust no Kubernetes.
+
+---
+
+### Plano Técnico — Item 1.1: Modelo de Tenant (Clínica/Hospital) com Unidades e filiais
+- **O que existe hoje:**
+  - O banco de dados do MedFlow é monotenant: não existe o conceito de Tenant/Organização hospitalar nem separação de unidades/filiais.
+  - As entidades (`Usuario`, `Paciente`, `Medico`, `Consulta`, `Prontuario`, `Auditoria`, etc.) não possuem coluna de identificação de tenant (`tenant_id`).
+- **O que será alterado:**
+  - Criar migração Flyway `V13__criar_tabelas_tenant_e_unidades.sql`:
+    * Tabela `tenant` (`id UUID PRIMARY KEY`, `nome VARCHAR`, `cnpj VARCHAR(14) UNIQUE`, `slug VARCHAR(50) UNIQUE`, `ativo BOOLEAN`, `plano VARCHAR(30)`, `criado_em TIMESTAMP`).
+    * Tabela `unidade` (`id UUID PRIMARY KEY`, `tenant_id UUID REFERENCES tenant(id)`, `nome VARCHAR`, `cnes VARCHAR(7)`, `endereco VARCHAR`, `telefone VARCHAR`, `ativo BOOLEAN`).
+    * Adicionar coluna `tenant_id UUID NOT NULL` com Foreign Key e índice B-Tree em todas as tabelas de negócio (`usuario`, `paciente`, `medico`, `funcionario`, `consulta`, `prontuario`, `triagem`, `evolucao`, `receita`, `atestado`, `exame`, `pagamento`, `auditoria`).
+    * Associar os dados semente existentes ao Tenant padrão da clínica piloto (`slug: clinica-central`).
+  - Criar entidades JPA `Tenant` e `Unidade` no backend.
+  - Implementar resolução de Tenant no contexto de requisição (`TenantContext` com `ThreadLocal`).
+  - Atualizar e expandir a suíte de testes unitários.
+- **Riscos & Mitigações:**
+  - *Risco:* Adicionar `tenant_id NOT NULL` quebrar queries e persistências existentes.
+  - *Mitigação:* Usar migração Flyway com valor default preenchido para dados existentes e testes unitários com preenchimento via listener/contexto.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.10: Hardening Base, Cabeçalhos de Segurança OWASP, Não-Root e NetworkPolicies
 - **O que existe hoje:**

@@ -1,0 +1,169 @@
+# =============================================================================
+# MedFlow - Políticas de Rede Zero-Trust (Kubernetes NetworkPolicies)
+# =============================================================================
+# Bloqueia tráfego leste-oeste não autorizado e garante isolamento estrito entre camadas:
+# Ingress -> Gateway -> Backend -> (PostgreSQL, RabbitMQ, Redis)
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# 1. Frontend: Acessível via Ingress Controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: medflow-frontend
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 80
+---
+# 2. API Gateway: Recebe tráfego externo / Ingress e direciona para Backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-gateway
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8080
+---
+# 3. Backend: Acessível estritamente a partir do API Gateway e Prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: medflow-backend
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+        - podSelector:
+            matchLabels:
+              app: medflow-prometheus
+      ports:
+        - protocol: TCP
+          port: 8081
+---
+# 4. Notification Service: Acessível pelo API Gateway e Backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-notification-service
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: notification-service
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+        - podSelector:
+            matchLabels:
+              app: medflow-backend
+      ports:
+        - protocol: TCP
+          port: 8082
+---
+# 5. PostgreSQL: Isolado, acessível apenas pelo Backend e pods de replicação
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: ["medflow-db", "medflow-db-ha", "medflow-db-pooler"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: medflow-backend
+        - podSelector:
+            matchLabels:
+              app: medflow-db-ha
+        - podSelector:
+            matchLabels:
+              app: medflow-db-pooler
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# 6. RabbitMQ: Acessível apenas pelo Backend e Notification Service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-rabbitmq
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: medflow-rabbitmq
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: medflow-backend
+        - podSelector:
+            matchLabels:
+              app: notification-service
+      ports:
+        - protocol: TCP
+          port: 5672
+---
+# 7. Redis: Acessível pelo API Gateway e Backend para Rate Limiting e Cache
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis
+  labels:
+    app.kubernetes.io/part-of: medflow
+spec:
+  podSelector:
+    matchLabels:
+      app: medflow-redis
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+        - podSelector:
+            matchLabels:
+              app: medflow-backend
+      ports:
+        - protocol: TCP
+          port: 6379

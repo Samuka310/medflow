@@ -58,6 +58,27 @@
 | **Épico 0** | **0.3** Correção vazamento prontuários | Concluído e verificado | Commit feat(security): enforce care relationship and eliminate IDOR in medical records | 124 testes OK (+4 novos), ABAC de vínculo assistencial, bloqueio de IDOR em prontuários e PDFs |
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Concluído e verificado | Commit feat(perf): replace in-memory entity scans with indexed queries (item 0.4) | 129 testes OK (+5 novos), Flyway V11, elimina scans em ProntuarioService e FaturamentoService |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Concluído e verificado | Commit feat(perf): eliminate N+1 queries in medical schedule sorting (item 0.5) | 130 testes OK (+2 novos), eliminação de N+1 no sort TimSort e no mapeamento DTO via carregamento em lote |
+| **Épico 0** | **0.6** Auditoria estruturada e confiável | Concluído e verificado | Commit feat(audit): structured transactional audit and clinical read tracking (item 0.6) | 134 testes OK (+4 novos), eliminação de System.err, REQUIRES_NEW, métricas Micrometer, eventos de alerta, Flyway V12 |
+
+### Plano Técnico — Item 0.6: Auditoria Confiável, Transacional e Rastreamento de Leituras Clínicas
+- **O que existe hoje:**
+  - `AuditoriaService.registrarAcao` engole exceções em um bloco genérico `catch (Exception e)` imprimindo em `System.err.println`, mascarando falhas críticas de auditoria e conformidade LGPD/CFM.
+  - Gravação de auditoria não possui demarcação transacional explícita (`REQUIRES_NEW`), podendo ser afetada pelo rollback de transações externas ou falhar silenciosamente no listener pós-commit.
+  - Não há métricas Micrometer no Prometheus nem eventos/alertas para falhas de auditoria.
+  - Leituras de prontuários (`findMyHistorico`), dados clínicos de pacientes (`findClinicoById`), geração de PDFs (`gerarPdfReceita`, `gerarPdfAtestado`), triagens (`findByConsultaId`) e exames (`findByProntuario`) não registram trilha de auditoria sobre quem consultou os dados clínicos.
+- **O que será alterado:**
+  - `AuditoriaService`: anotar `registrarAcao` com `@Transactional(propagation = Propagation.REQUIRES_NEW)`.
+  - Remover `System.err` e adotar logging estruturado com SLF4J e MDC contextual (`audit.acao`, `audit.entidade`, `audit.entidadeId`, `audit.usuario`).
+  - Adicionar métricas no `MedflowMetricsService`: `medflow.auditoria.gravadas` e `medflow.auditoria.falhas` (com tags de ação).
+  - Publicar evento de alerta `AuditoriaFalhaEvent` e lançar `FalhaAuditoriaException` para tornar a falha visível e auditável caso o repositório falhe.
+  - Implementar auditoria explícita de leituras clínicas em `ProntuarioService`, `PacienteService`, `DocumentoPdfService`, `TriagemService` e `ExameService`.
+  - Criar migração Flyway `V12__indices_auditoria.sql` para indexar `auditoria(data_hora DESC)`, `auditoria(entidade, entidade_id)` e `auditoria(usuario_id)`.
+  - Atualizar e expandir a suíte de testes unitários para cobrir caminhos de sucesso, falha estruturada, métricas, alertas e auditoria de leituras clínicas.
+- **Riscos & Mitigações:**
+  - *Risco:* Sobrecarga de transações com `REQUIRES_NEW` sob alta concorrência.
+  - *Mitigação:* Queries de auditoria são inserts simples otimizados com índices; índices criados via Flyway; conexões liberadas imediatamente após cada insert.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.5: Eliminação de N+1 na Ordenação da Fila Médica
 - **O que existe hoje:**

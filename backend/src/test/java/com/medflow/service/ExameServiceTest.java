@@ -29,6 +29,9 @@ class ExameServiceTest {
     @Mock
     private ProntuarioRepository prontuarioRepository;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private ExameService exameService;
 
@@ -58,10 +61,11 @@ class ExameServiceTest {
         assertThat(resultado).isNotNull();
         assertThat(resultado.getNomeArquivo()).isEqualTo("hemograma.pdf");
         verify(exameRepository).save(any(Exame.class));
+        verify(auditoriaService).registrarAcao(eq("ANEXAR_EXAME"), eq("Exame"), any(), anyString());
     }
 
     @Test
-    @DisplayName("Deve listar exames vinculados a um prontuário")
+    @DisplayName("Deve listar exames vinculados a um prontuário e registrar auditoria de leitura")
     void findByProntuario_DeveRetornarListaDeExames() {
         UUID prontuarioId = UUID.randomUUID();
         Prontuario prontuario = new Prontuario();
@@ -78,5 +82,6 @@ class ExameServiceTest {
 
         assertThat(lista).hasSize(1);
         assertThat(lista.get(0).getNomeArquivo()).isEqualTo("raio-x.png");
+        verify(auditoriaService).registrarAcao(eq("LEITURA_EXAMES"), eq("Exame"), eq(prontuarioId), anyString());
     }
 }

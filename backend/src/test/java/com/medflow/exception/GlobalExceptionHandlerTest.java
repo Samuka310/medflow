@@ -28,6 +28,9 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/test/acesso")
         public void acesso() { throw new AcessoNegadoException("Sem acesso"); }
+
+        @GetMapping("/test/auditoria")
+        public void auditoria() { throw new FalhaAuditoriaException("Falha ao salvar auditoria"); }
     }
 
     @BeforeEach
@@ -80,5 +83,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.title").value("Acesso negado"))
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.detail").value("Sem acesso"));
+    }
+
+    @Test
+    void testFalhaAuditoria() throws Exception {
+        mockMvc.perform(get("/test/auditoria"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("https://medflow.com/erros/falha-auditoria"))
+                .andExpect(jsonPath("$.title").value("Falha de auditoria e conformidade"))
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.detail").value("Falha de conformidade ao registrar auditoria de segurança."));
     }
 }

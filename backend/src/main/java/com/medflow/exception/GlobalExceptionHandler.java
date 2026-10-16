@@ -79,6 +79,16 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(FalhaAuditoriaException.class)
+    public ProblemDetail handleFalhaAuditoria(FalhaAuditoriaException ex) {
+        logger.error("[AUDITORIA_CRITICA] Interrupção por falha de auditoria: {}", ex.getMessage());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Falha de conformidade ao registrar auditoria de segurança.");
+        pd.setTitle("Falha de auditoria e conformidade");
+        pd.setType(URI.create("https://medflow.com/erros/falha-auditoria"));
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleException(Exception ex) {
         logger.error("Erro interno do servidor", ex);

@@ -170,10 +170,11 @@ class ProntuarioServiceTest {
         assertThat(historico).hasSize(1);
         verify(prontuarioRepository).findByConsultaMedicoUsuarioEmail("medico@medflow.com");
         verify(prontuarioRepository, never()).findAll();
+        verify(auditoriaService).registrarAcao(eq("medico@medflow.com"), eq("LEITURA_HISTORICO_PRONTUARIOS"), eq("Prontuario"), isNull(), anyString());
     }
 
     @Test
-    @DisplayName("Deve retornar histórico do paciente buscando pelo usuarioId sem scan em memória")
+    @DisplayName("Deve retornar histórico do paciente buscando pelo usuarioId sem scan em memória e registrar auditoria")
     void findMyHistorico_DeveRetornarProntuariosDoPaciente() {
         UUID usuarioId = UUID.randomUUID();
         Usuario pacienteUser = new Usuario();
@@ -194,5 +195,6 @@ class ProntuarioServiceTest {
         assertThat(historico).hasSize(1);
         verify(pacienteRepository).findByUsuarioId(usuarioId);
         verify(pacienteRepository, never()).findAll();
+        verify(auditoriaService).registrarAcao(eq("paciente@medflow.com"), eq("LEITURA_HISTORICO_PRONTUARIOS"), eq("Prontuario"), isNull(), anyString());
     }
 }

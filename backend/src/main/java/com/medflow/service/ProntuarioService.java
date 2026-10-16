@@ -52,20 +52,22 @@ public class ProntuarioService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
+        List<ProntuarioDTO> resultado = List.of();
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
             Paciente paciente = pacienteRepository.findByUsuarioId(usuario.getId())
                     .orElseThrow(() -> new RuntimeException("Paciente não encontrado para este usuário."));
 
-            return prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream()
+            resultado = prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
         } else if (usuario.getRole() == com.medflow.entity.enums.Role.MEDICO) {
-            return prontuarioRepository.findByConsultaMedicoUsuarioEmail(email).stream()
+            resultado = prontuarioRepository.findByConsultaMedicoUsuarioEmail(email).stream()
                     .map(this::mapToDTO)
                     .collect(Collectors.toList());
         }
 
-        return List.of();
+        auditoriaService.registrarAcao(email, "LEITURA_HISTORICO_PRONTUARIOS", "Prontuario", null, "Leitura de histórico de prontuários realizada por: " + email);
+        return resultado;
     }
     
     @PreAuthorize("hasAnyRole('MEDICO', 'PACIENTE')")

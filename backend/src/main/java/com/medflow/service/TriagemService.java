@@ -24,6 +24,7 @@ public class TriagemService {
     private final ConsultaRepository consultaRepository;
     private final PacienteRepository pacienteRepository;
     private final FuncionarioRepository funcionarioRepository;
+    private final AuditoriaService auditoriaService;
 
     public TriagemDTO registrar(TriagemDTO dto) {
         Consulta consulta = consultaRepository.findById(dto.getConsultaId())
@@ -57,6 +58,7 @@ public class TriagemService {
         triagem.setDataHora(LocalDateTime.now());
 
         triagem = triagemRepository.save(triagem);
+        auditoriaService.registrarAcao("REGISTRAR_TRIAGEM", "Triagem", triagem.getId(), "Triagem Manchester realizada com prioridade: " + triagem.getPrioridade());
 
         return mapToDTO(triagem);
     }
@@ -64,6 +66,7 @@ public class TriagemService {
     public TriagemDTO findByConsultaId(UUID consultaId) {
         Triagem triagem = triagemRepository.findByConsultaId(consultaId)
                 .orElseThrow(() -> new RuntimeException("Triagem não encontrada para esta consulta."));
+        auditoriaService.registrarAcao("LEITURA_TRIAGEM", "Triagem", consultaId, "Visualização de dados de triagem Manchester da consulta");
         return mapToDTO(triagem);
     }
 

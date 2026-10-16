@@ -82,6 +82,22 @@ public class MedflowMetricsService {
         agendamentoTimer.record(durationMillis, TimeUnit.MILLISECONDS);
     }
 
+    public void registrarAuditoriaGravada(String acao) {
+        Counter.builder("medflow.auditoria.gravadas")
+                .description("Total de registros de auditoria persistidos com sucesso")
+                .tag("acao", acao != null ? acao : "DESCONHECIDA")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void registrarFalhaAuditoria(String acao) {
+        Counter.builder("medflow.auditoria.falhas")
+                .description("Total de falhas no registro de auditoria")
+                .tag("acao", acao != null ? acao : "DESCONHECIDA")
+                .register(meterRegistry)
+                .increment();
+    }
+
     public Timer getAgendamentoTimer() {
         return agendamentoTimer;
     }

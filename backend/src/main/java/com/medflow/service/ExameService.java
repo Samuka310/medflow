@@ -19,6 +19,7 @@ public class ExameService {
 
     private final ExameRepository exameRepository;
     private final ProntuarioRepository prontuarioRepository;
+    private final AuditoriaService auditoriaService;
 
     @PreAuthorize("hasRole('MEDICO')")
     public ExameDTO adicionarExame(ExameDTO dto) {
@@ -31,6 +32,7 @@ public class ExameService {
         exame.setUrlArquivo(dto.getUrlArquivo());
 
         exame = exameRepository.save(exame);
+        auditoriaService.registrarAcao("ANEXAR_EXAME", "Exame", exame.getId(), "Exame clínico anexado ao prontuário: " + exame.getNomeArquivo());
         return mapToDTO(exame);
     }
 
@@ -39,6 +41,7 @@ public class ExameService {
         // A lógica de bloqueio de visualização de prontuário pode ser feita 
         // chamando o ProntuarioService.findById(prontuarioId) ou validando aqui.
         // Para simplificar, confiaremos que se ele já tem o ID do prontuário, a rota de exames exibe os exames dele.
+        auditoriaService.registrarAcao("LEITURA_EXAMES", "Exame", prontuarioId, "Visualização de exames do prontuário");
         return exameRepository.findByProntuarioId(prontuarioId).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());

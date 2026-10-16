@@ -24,6 +24,7 @@ public class PacienteService {
     private final com.medflow.repository.AtestadoRepository atestadoRepository;
     private final com.medflow.repository.ProntuarioRepository prontuarioRepository;
     private final com.medflow.repository.MedicoRepository medicoRepository;
+    private final AuditoriaService auditoriaService;
 
     public PacienteDTO create(PacienteDTO dto, String emailLogado, boolean isRecepcionista) {
         if (!isRecepcionista) {
@@ -112,8 +113,8 @@ public class PacienteService {
     public com.medflow.dto.PacienteClinicoDTO findClinicoById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
-        
 
+        auditoriaService.registrarAcao("LEITURA_DADOS_CLINICOS", "Paciente", paciente.getId(), "Acesso aos dados clínicos confidenciais do paciente ID: " + id);
         return mapToClinicoDTO(paciente);
     }
 
@@ -164,6 +165,7 @@ public class PacienteService {
         receita.setValidadeData(dto.getValidadeData());
         
         receita = receitaRepository.save(receita);
+        auditoriaService.registrarAcao(email, "PRESCREVER_RECEITA", "Receita", receita.getId(), "Prescrição do medicamento: " + receita.getMedicamento());
         
         dto.setId(receita.getId());
         dto.setPacienteId(paciente.getId());
@@ -192,6 +194,7 @@ public class PacienteService {
         atestado.setCidOpcional(dto.getCidOpcional());
         
         atestado = atestadoRepository.save(atestado);
+        auditoriaService.registrarAcao(email, "EMITIR_ATESTADO", "Atestado", atestado.getId(), "Emissão de atestado médico com " + atestado.getDiasAfastamento() + " dias de afastamento");
         
         dto.setId(atestado.getId());
         dto.setPacienteId(paciente.getId());

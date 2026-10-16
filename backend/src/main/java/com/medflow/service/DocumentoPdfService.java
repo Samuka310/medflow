@@ -23,6 +23,7 @@ public class DocumentoPdfService {
 
     private final ReceitaRepository receitaRepository;
     private final AtestadoRepository atestadoRepository;
+    private final AuditoriaService auditoriaService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -31,6 +32,8 @@ public class DocumentoPdfService {
     public byte[] gerarPdfReceita(UUID receitaId) {
         Receita receita = receitaRepository.findById(receitaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Receita médica não encontrada."));
+
+        auditoriaService.registrarAcao("LEITURA_RECEITA_PDF", "Receita", receitaId, "Geração e download de documento PDF da receita médica");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 45, 45, 45, 45);
@@ -118,6 +121,8 @@ public class DocumentoPdfService {
     public byte[] gerarPdfAtestado(UUID atestadoId) {
         Atestado atestado = atestadoRepository.findById(atestadoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado médico não encontrado."));
+
+        auditoriaService.registrarAcao("LEITURA_ATESTADO_PDF", "Atestado", atestadoId, "Geração e download de documento PDF do atestado médico");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 45, 45, 45, 45);

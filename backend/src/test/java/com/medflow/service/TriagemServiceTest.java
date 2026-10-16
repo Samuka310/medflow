@@ -41,6 +41,9 @@ class TriagemServiceTest {
     @Mock
     private FuncionarioRepository funcionarioRepository;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private TriagemService triagemService;
 
@@ -101,6 +104,7 @@ class TriagemServiceTest {
         assertThat(resultado.getPrioridade()).isEqualTo(PrioridadeTriagem.ALTA);
         assertThat(resultado.getPressaoArterial()).isEqualTo("130x85");
         verify(triagemRepository).save(any(Triagem.class));
+        verify(auditoriaService).registrarAcao(eq("REGISTRAR_TRIAGEM"), eq("Triagem"), any(), anyString());
     }
 
     @Test
@@ -138,7 +142,7 @@ class TriagemServiceTest {
     }
 
     @Test
-    @DisplayName("Deve buscar triagem por consultaId com sucesso")
+    @DisplayName("Deve buscar triagem por consultaId com sucesso e registrar auditoria de leitura")
     void findByConsultaId_DeveRetornarTriagem() {
         Triagem triagem = new Triagem();
         triagem.setId(UUID.randomUUID());
@@ -153,5 +157,6 @@ class TriagemServiceTest {
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getPrioridade()).isEqualTo(PrioridadeTriagem.MEDIA);
+        verify(auditoriaService).registrarAcao(eq("LEITURA_TRIAGEM"), eq("Triagem"), eq(consultaId), anyString());
     }
 }

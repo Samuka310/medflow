@@ -55,6 +55,9 @@ class PacienteServiceTest {
     @Mock
     private MedicoRepository medicoRepository;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private PacienteService pacienteService;
 
@@ -178,6 +181,7 @@ class PacienteServiceTest {
         assertThat(resultado).isNotNull();
         assertThat(resultado.getMedicamento()).isEqualTo("Amoxicilina 500mg");
         verify(receitaRepository).save(any(Receita.class));
+        verify(auditoriaService).registrarAcao(eq("medico@medflow.com"), eq("PRESCREVER_RECEITA"), eq("Receita"), any(), anyString());
     }
 
     @Test
@@ -207,6 +211,22 @@ class PacienteServiceTest {
         assertThat(resultado).isNotNull();
         assertThat(resultado.getDiasAfastamento()).isEqualTo(3);
         verify(atestadoRepository).save(any(Atestado.class));
+        verify(auditoriaService).registrarAcao(eq("medico@medflow.com"), eq("EMITIR_ATESTADO"), eq("Atestado"), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("Deve buscar dados clínicos confidenciais e registrar trilha de auditoria")
+    void findClinicoById_DeveRetornarDadosClinicosERegistrarAuditoriaDeLeitura() {
+        when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
+        when(receitaRepository.findByPacienteId(pacienteId)).thenReturn(List.of());
+        when(atestadoRepository.findByPacienteId(pacienteId)).thenReturn(List.of());
+        when(prontuarioRepository.findByConsultaPacienteId(pacienteId)).thenReturn(List.of());
+
+        var clinico = pacienteService.findClinicoById(pacienteId);
+
+        assertThat(clinico).isNotNull();
+        assertThat(clinico.getId()).isEqualTo(pacienteId);
+        verify(auditoriaService).registrarAcao(eq("LEITURA_DADOS_CLINICOS"), eq("Paciente"), eq(pacienteId), anyString());
     }
 
     @Test

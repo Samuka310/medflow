@@ -32,11 +32,14 @@ class DocumentoPdfServiceTest {
     @Mock
     private AtestadoRepository atestadoRepository;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private DocumentoPdfService documentoPdfService;
 
     @Test
-    @DisplayName("Geração de PDF de Receita Médica com cabeçalho %PDF válido")
+    @DisplayName("Geração de PDF de Receita Médica com cabeçalho %PDF válido e registro de auditoria de leitura")
     void testGerarPdfReceita() {
         UUID receitaId = UUID.randomUUID();
 
@@ -69,10 +72,15 @@ class DocumentoPdfServiceTest {
         assertTrue(pdfBytes.length > 500, "O PDF gerado deve conter conteúdo substancial");
         String header = new String(pdfBytes, 0, 4, StandardCharsets.US_ASCII);
         assertEquals("%PDF", header, "O arquivo binário gerado deve iniciar com o cabeçalho PDF padrão");
+        org.mockito.Mockito.verify(auditoriaService).registrarAcao(
+                org.mockito.ArgumentMatchers.eq("LEITURA_RECEITA_PDF"),
+                org.mockito.ArgumentMatchers.eq("Receita"),
+                org.mockito.ArgumentMatchers.eq(receitaId),
+                org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
-    @DisplayName("Geração de PDF de Atestado Médico com cabeçalho %PDF válido")
+    @DisplayName("Geração de PDF de Atestado Médico com cabeçalho %PDF válido e registro de auditoria de leitura")
     void testGerarPdfAtestado() {
         UUID atestadoId = UUID.randomUUID();
 
@@ -104,5 +112,10 @@ class DocumentoPdfServiceTest {
         assertTrue(pdfBytes.length > 500, "O PDF gerado deve conter conteúdo substancial");
         String header = new String(pdfBytes, 0, 4, StandardCharsets.US_ASCII);
         assertEquals("%PDF", header, "O arquivo binário gerado deve iniciar com o cabeçalho PDF padrão");
+        org.mockito.Mockito.verify(auditoriaService).registrarAcao(
+                org.mockito.ArgumentMatchers.eq("LEITURA_ATESTADO_PDF"),
+                org.mockito.ArgumentMatchers.eq("Atestado"),
+                org.mockito.ArgumentMatchers.eq(atestadoId),
+                org.mockito.ArgumentMatchers.anyString());
     }
 }

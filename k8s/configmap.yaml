@@ -12,3 +12,5 @@ data:
   SPRING_RABBITMQ_PORT: "5672"
   NOTIFICATION_SERVICE_URL: "http://notification-service:8082"
   MEDFLOW_CORE_URL: "http://medflow-backend-service:8081"
+  SPRING_DATA_REDIS_HOST: "medflow-redis-service"
+  SPRING_DATA_REDIS_PORT: "6379"

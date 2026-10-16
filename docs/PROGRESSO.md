@@ -59,6 +59,51 @@
 | **Épico 0** | **0.4** Varredura em memória de pacientes | Concluído e verificado | Commit feat(perf): replace in-memory entity scans with indexed queries (item 0.4) | 129 testes OK (+5 novos), Flyway V11, elimina scans em ProntuarioService e FaturamentoService |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Concluído e verificado | Commit feat(perf): eliminate N+1 queries in medical schedule sorting (item 0.5) | 130 testes OK (+2 novos), eliminação de N+1 no sort TimSort e no mapeamento DTO via carregamento em lote |
 | **Épico 0** | **0.6** Auditoria estruturada e confiável | Concluído e verificado | Commit feat(audit): structured transactional audit and clinical read tracking (item 0.6) | 134 testes OK (+4 novos), eliminação de System.err, REQUIRES_NEW, métricas Micrometer, eventos de alerta, Flyway V12 |
+| **Épico 0** | **0.7** Rate limit distribuído via Redis | Concluído e verificado | Commit feat(security): distributed rate limiting via redis with dual-dimension ip and user throttling (item 0.7) | 10 testes Gateway OK (8 rate limiter), 134 testes Backend OK, Redis no Docker Compose e K8s, RFC 7807 429 |
+| **Épico 0** | **0.8** PostgreSQL HA e Pool de Conexões | Planejado | Branch feat/epico-0-correcoes-imediatas | Aguardando autorização |
+
+### Plano Técnico — Item 0.8: Alta Disponibilidade PostgreSQL (CloudNativePG/Patroni), PgBouncer e PITR
+- **O que existe hoje:**
+  - O PostgreSQL no Kubernetes é executado em `k8s/postgres.yaml` como um Deployment de réplica única (Single Point of Failure - SPOF) sem alta disponibilidade, sem failover automatizado e sem réplicas de leitura.
+  - Não há camada de connection pooling dedicado (PgBouncer) para absorver picos de conexões concorrentes gerados por múltiplos pods do backend escalados pelo HPA.
+  - Não há configuração de arquivamento de WAL (Write-Ahead Logging) contínuo nem política de Point-in-Time Recovery (PITR) para recuperação contra corrupção acidental ou desastre.
+- **O que será alterado:**
+  - Criar manifesto Kubernetes de alta disponibilidade corporativa com operador CloudNativePG (`k8s/postgres-ha-cluster.yaml`) contendo:
+    * Cluster com 3 instâncias (1 primário de escrita + 2 réplicas com streaming replication e failover automático).
+    * `PodAntiAffinity` para garantir dispersão entre diferentes nós/zonas do cluster.
+    * Pooler integrado PgBouncer gerenciado em modo `transaction` (`k8s/postgres-pgbouncer.yaml`).
+    * Configuração de backup automatizado (`ScheduledBackup`) com destino para S3/MinIO e retenção de 30 dias com WAL archiving.
+  - Criar documentação operacional de Disaster Recovery e restauração (`docs/database/DISASTER_RECOVERY.md`) com procedimentos passo a passo de failover e restore de PITR.
+  - Criar script de validação de backup e integridade de restauração (`scripts/test-db-restore.sh`).
+  - Otimizar `application-prod.yml` do Spring Boot com dimensionamento fino do HikariCP integrado ao PgBouncer (`leak-detection-threshold`, `connection-timeout`, `keepalive-time`).
+- **Riscos & Mitigações:**
+  - *Risco:* Incompatibilidade de prepared statements entre Spring Data JPA / Hibernate e PgBouncer em modo `transaction`.
+  - *Mitigação:* Configurar `prepareThreshold=0` na string de conexão JDBC de produção ou utilizar pool em modo transaction com parâmetros recomendados pelo PostgreSQL Global Development Group.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
+
+### Plano Técnico — Item 0.7: Rate Limit Distribuído via Redis e Dupla Dimensão (IP e Usuário)
+- **O que existe hoje:**
+  - `RateLimiterGlobalFilter` utiliza um `ConcurrentHashMap` em memória local na JVM do API Gateway.
+  - Ao escalar horizontalmente para múltiplas réplicas (`k8s/hpa.yaml`), os limites são multiplicados pelo número de pods, fragilizando a defesa contra DoS e ataques de força bruta.
+  - O controle de taxa é aplicado unicamente por IP, sem limites diferenciados por usuário autenticado.
+  - Não há serviço de Redis provisionado no `docker-compose.yml` nem manifestos no Kubernetes (`k8s/redis.yaml`).
+- **O que será alterado:**
+  - Adicionar dependência `spring-boot-starter-data-redis-reactive` no `services/api-gateway/pom.xml`.
+  - Configurar conexão do Redis no `services/api-gateway/src/main/resources/application.yml` com variáveis de ambiente (`SPRING_DATA_REDIS_HOST`, `SPRING_DATA_REDIS_PORT`).
+  - Atualizar `RateLimiterGlobalFilter` para operar de forma distribuída via `ReactiveStringRedisTemplate` com chave de janela deslizante e expiração automática (`EXPIRE 60s`).
+  - Implementar rate limiting em duas dimensões independentes:
+    1. **Por IP:** Proteção contra DoS e scraping (120 req/min geral; 15 req/min em `/api/auth/` e recuperação de senha).
+    2. **Por Usuário Autenticado:** Proteção contra abuso de contas comprometidas (180 req/min geral; 10 req/min em operações sensíveis).
+  - Implementar fallback resiliente para memória local caso o Redis esteja indisponível ou não configurado no ambiente local de testes unitários.
+  - Adicionar container `redis:7-alpine` no `docker-compose.yml` com healthcheck.
+  - Criar manifesto `k8s/redis.yaml` (Deployment + Service) e registrar no `k8s/kustomization.yaml`.
+  - Atualizar a suíte de testes unitários em `RateLimiterGlobalFilterTest` para validar limites por IP, limites por usuário e endpoints de autenticação.
+- **Riscos & Mitigações:**
+  - *Risco:* Indisponibilidade temporária do Redis bloquear todas as requisições legítimas do hospital.
+  - *Mitigação:* Mecanismo de degradação graciosa com fallback em memória e log de advertência estruturado, garantindo disponibilidade contínua.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.6: Auditoria Confiável, Transacional e Rastreamento de Leituras Clínicas
 - **O que existe hoje:**

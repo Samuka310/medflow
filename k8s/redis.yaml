@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: medflow-redis-service
+  labels:
+    app: medflow-redis
+    app.kubernetes.io/part-of: medflow
+spec:
+  selector:
+    app: medflow-redis
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medflow-redis
+  labels:
+    app: medflow-redis
+    app.kubernetes.io/part-of: medflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medflow-redis
+  template:
+    metadata:
+      labels:
+        app: medflow-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 15
+          periodSeconds: 10

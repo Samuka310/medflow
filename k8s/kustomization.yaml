@@ -9,6 +9,7 @@ resources:
   - configmap.yaml
   - postgres.yaml
   - rabbitmq.yaml
+  - redis.yaml
   - backend.yaml
   - notification-service.yaml
   - api-gateway.yaml

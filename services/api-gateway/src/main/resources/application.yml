@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000ms
   cloud:
     gateway:
       globalcors:

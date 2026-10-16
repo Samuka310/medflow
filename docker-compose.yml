@@ -98,6 +98,21 @@ services:
     networks:
       - medflow-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: medflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - medflow-redis-data:/data
+    networks:
+      - medflow-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api-gateway:
     build:
       context: .
@@ -109,10 +124,14 @@ services:
       - MEDFLOW_CORE_URL=http://backend:8081
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
       - JWT_SECRET=${JWT_SECRET:-dev_insecure_dummy_key_for_local_testing_min_32_bytes_long!!}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       backend:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
@@ -165,6 +184,7 @@ services:
 
 volumes:
   medflow-postgres-data:
+  medflow-redis-data:
 
 networks:
   medflow-network:

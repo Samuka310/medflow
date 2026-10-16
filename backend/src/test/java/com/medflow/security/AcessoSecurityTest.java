@@ -82,6 +82,7 @@ class AcessoSecurityTest {
     void admin_DeveTerAcessoLiberado() {
         assertThat(acessoSecurity.donoDaConsulta(id, authAdmin)).isTrue();
         assertThat(acessoSecurity.donoDoPaciente(id, authAdmin)).isTrue();
+        assertThat(acessoSecurity.donoDoUsuario(id, authAdmin)).isTrue();
         assertThat(acessoSecurity.donoDoProntuario(id, authAdmin)).isTrue();
         assertThat(acessoSecurity.donoDoPagamento(id, authAdmin)).isTrue();
         assertThat(acessoSecurity.donoDaReceita(id, authAdmin)).isTrue();
@@ -213,5 +214,31 @@ class AcessoSecurityTest {
 
         when(pacienteRepository.findById(id)).thenReturn(Optional.of(paciente));
         assertThat(acessoSecurity.temVinculoAssistencialComPaciente(id, authPaciente)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Paciente dono do seu usuário deve ter acesso permitido via donoDoUsuario")
+    void donoDoUsuario_DevePermitirQuandoEmailBate() {
+        Usuario usuario = new Usuario();
+        usuario.setEmail("paciente@medflow.com");
+
+        Paciente paciente = new Paciente();
+        paciente.setUsuario(usuario);
+
+        when(pacienteRepository.findByUsuarioId(id)).thenReturn(Optional.of(paciente));
+        assertThat(acessoSecurity.donoDoUsuario(id, authPaciente)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Paciente não dono do usuário deve ter acesso negado via donoDoUsuario")
+    void donoDoUsuario_DeveNegarQuandoEmailNaoBate() {
+        Usuario outroUsuario = new Usuario();
+        outroUsuario.setEmail("outro@medflow.com");
+
+        Paciente paciente = new Paciente();
+        paciente.setUsuario(outroUsuario);
+
+        when(pacienteRepository.findByUsuarioId(id)).thenReturn(Optional.of(paciente));
+        assertThat(acessoSecurity.donoDoUsuario(id, authPaciente)).isFalse();
     }
 }

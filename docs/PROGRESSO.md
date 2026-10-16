@@ -56,8 +56,27 @@
 | **Épico 0** | **0.1** Segredos fora do Git | Concluído e verificado | Commit feat(security): remove hardcoded secrets, add env injection and gitleaks | 112 testes OK, frontend build OK, .env.example, .gitleaks.toml, k8s/external-secret.yaml |
 | **Épico 0** | **0.2** JWT RS256/EdDSA com rotação | Concluído e verificado | Commit feat(security): migrate JWT to RS256 with kid, rotation and refresh token | 120 testes OK (5 novos), Flyway V10, RS256 assimétrico, replay detection |
 | **Épico 0** | **0.3** Correção vazamento prontuários | Concluído e verificado | Commit feat(security): enforce care relationship and eliminate IDOR in medical records | 124 testes OK (+4 novos), ABAC de vínculo assistencial, bloqueio de IDOR em prontuários e PDFs |
-| **Épico 0** | **0.4** Varredura em memória de pacientes | Não iniciado | - | - |
+| **Épico 0** | **0.4** Varredura em memória de pacientes | Concluído e verificado | Commit feat(perf): replace in-memory entity scans with indexed queries (item 0.4) | 129 testes OK (+5 novos), Flyway V11, elimina scans em ProntuarioService e FaturamentoService |
 | **Épico 0** | **0.5** N+1 na ordenação de agenda médica | Não iniciado | - | - |
+
+### Plano Técnico — Item 0.4: Varredura em Memória e Substituição por Queries Indexadas
+- **O que existe hoje:**
+  - `ProntuarioService.findMyHistorico` realizava busca de `Paciente` varrendo todos os registros (`findAll().stream().filter(...)`).
+  - `FaturamentoService.gerarRelatorio` carrega todos os pagamentos da história da clínica via `pagamentoRepository.findAll()` e itera em memória sobre cada registro para calcular totais diários e mensais.
+  - Ausência de métodos indexados diretos como `findByUsuarioId` e `existsByUsuarioId` em `PacienteRepository`, `MedicoRepository` e `FuncionarioRepository`.
+  - Ausência de índices explícitos em colunas de alta frequência de agregação como `consulta.data_hora` e `pagamento.status`.
+- **O que será alterado:**
+  - Criar migração Flyway `V11__indices_otimizacao_buscas.sql` adicionando índices B-Tree em `consulta(data_hora)`, `pagamento(status)`, `medico(usuario_id)` e `funcionario(usuario_id)`.
+  - Adicionar `findByUsuarioId(UUID usuarioId)` e `existsByUsuarioId(UUID usuarioId)` em `PacienteRepository`, `MedicoRepository` e `FuncionarioRepository`.
+  - Atualizar `ProntuarioService` para recuperar o paciente usando diretamente `pacienteRepository.findByUsuarioId(usuario.getId())`.
+  - Adicionar `findByUsuarioId` e validações de unicidade em `PacienteService` e endpoint protegido em `PacienteController`.
+  - Otimizar `FaturamentoService` para usar agregações SQL diretas em `PagamentoRepository` (`somarTotalPagoPeriodo`, `countByStatus`, `somarTotalPendente`), eliminando completamente o carregamento em lote de entidades na JVM.
+  - Atualizar e expandir a suíte de testes unitários para cobrir todos os métodos criados e refatorados.
+- **Riscos & Mitigações:**
+  - *Risco:* Regressão em endpoints existentes de relatório ou paciente.
+  - *Mitigação:* Executar a suíte completa de 124 testes unitários e de integração antes e após cada alteração.
+- **Como reverter:**
+  - `git checkout HEAD~1`.
 
 ### Plano Técnico — Item 0.3: Vínculo Assistencial e Proteção IDOR em Prontuários
 - **O que existe hoje:**

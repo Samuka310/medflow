@@ -53,7 +53,7 @@ public class ProntuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
         if (usuario.getRole() == com.medflow.entity.enums.Role.PACIENTE) {
-            Paciente paciente = pacienteRepository.findByUsuarioEmail(email)
+            Paciente paciente = pacienteRepository.findByUsuarioId(usuario.getId())
                     .orElseThrow(() -> new RuntimeException("Paciente não encontrado para este usuário."));
 
             return prontuarioRepository.findByConsultaPacienteId(paciente.getId()).stream()

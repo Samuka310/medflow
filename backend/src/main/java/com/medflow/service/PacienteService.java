@@ -39,6 +39,10 @@ public class PacienteService {
             }
         }
 
+        if (dto.getUsuarioId() != null && pacienteRepository.existsByUsuarioId(dto.getUsuarioId())) {
+            throw new com.medflow.exception.RegraDeNegocioException("Já existe um registro de paciente vinculado a este usuário.");
+        }
+
         if (pacienteRepository.findByCpf(dto.getCpf()).isPresent()) {
             throw new com.medflow.exception.RegraDeNegocioException("Já existe um paciente cadastrado com este CPF.");
         }
@@ -57,11 +61,6 @@ public class PacienteService {
             usuario = new Usuario();
             usuario.setNome(dto.getNome());
             usuario.setEmail(dto.getEmail());
-            // It's better to encode the password here but we don't have PasswordEncoder injected.
-            // Wait, we need PasswordEncoder injected in PacienteService!
-            // I will just throw an error if PasswordEncoder is not used, or I'll just save it as plain text and fix it below by injecting it.
-            // Actually I'll use a hack or just inject PasswordEncoder. Let's just inject PasswordEncoder.
-            // I'll replace the constructor soon.
             usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
             usuario.setRole(com.medflow.entity.enums.Role.PACIENTE);
             usuario = usuarioRepository.save(usuario);
@@ -89,6 +88,12 @@ public class PacienteService {
     public PacienteDTO findById(UUID id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+        return mapToDTO(paciente);
+    }
+
+    public PacienteDTO findByUsuarioId(UUID usuarioId) {
+        Paciente paciente = pacienteRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new com.medflow.exception.RecursoNaoEncontradoException("Paciente não encontrado para este usuário."));
         return mapToDTO(paciente);
     }
 

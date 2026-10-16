@@ -91,6 +91,17 @@ public class PacienteController {
         return ResponseEntity.ok(pacienteService.findMe(principal.getName()));
     }
 
+    @PreAuthorize("hasRole('ADMIN') or @acessoSecurity.donoDoUsuario(#usuarioId, authentication)")
+    @GetMapping("/usuario/{usuarioId}")
+    @Operation(summary = "Buscar paciente por ID do usuário", description = "Retorna o registro do paciente a partir do identificador de usuário sem scan em memória")
+    @ApiResponse(responseCode = "200", description = "Paciente encontrado com sucesso",
+            content = @Content(schema = @Schema(implementation = PacienteDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Registro de paciente não encontrado para este usuário",
+            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    public ResponseEntity<PacienteDTO> findByUsuarioId(@PathVariable UUID usuarioId) {
+        return ResponseEntity.ok(pacienteService.findByUsuarioId(usuarioId));
+    }
+
     @PreAuthorize("hasAnyRole('RECEPCIONISTA','TRIAGEM','MEDICO','ADMIN','PACIENTE')")
     @GetMapping("/{id}/resumo")
     @Operation(summary = "Buscar resumo do paciente por ID", description = "Acesso a dados cadastrais. Permitido para Recepção, Triagem, Médico, Admin e o próprio Paciente.")

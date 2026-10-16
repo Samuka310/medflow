@@ -227,4 +227,42 @@ class PacienteServiceTest {
         assertThatThrownBy(() -> pacienteService.delete(pacienteId))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
+
+    @Test
+    @DisplayName("Deve buscar paciente por usuarioId com sucesso via query indexada")
+    void findByUsuarioId_DeveRetornarPacienteComSucesso() {
+        when(pacienteRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(paciente));
+
+        PacienteDTO resultado = pacienteService.findByUsuarioId(usuarioId);
+
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.getId()).isEqualTo(pacienteId);
+        verify(pacienteRepository).findByUsuarioId(usuarioId);
+        verify(pacienteRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("Deve lançar RecursoNaoEncontradoException quando usuarioId não possuir paciente")
+    void findByUsuarioId_DeveLancarExcecao_QuandoNaoEncontrado() {
+        when(pacienteRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pacienteService.findByUsuarioId(usuarioId))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Paciente não encontrado para este usuário");
+    }
+
+    @Test
+    @DisplayName("Deve lançar RegraDeNegocioException ao tentar cadastrar paciente com usuarioId já vinculado")
+    void create_DeveLancarExcecao_QuandoUsuarioIdJaPossuiPaciente() {
+        PacienteDTO dto = new PacienteDTO();
+        dto.setCpf("999.888.777-66");
+        dto.setUsuarioId(usuarioId);
+
+        when(usuarioRepository.findByEmail("maria@email.com")).thenReturn(Optional.of(usuario));
+        when(pacienteRepository.existsByUsuarioId(usuarioId)).thenReturn(true);
+
+        assertThatThrownBy(() -> pacienteService.create(dto, "maria@email.com", false))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Já existe um registro de paciente vinculado a este usuário");
+    }
 }

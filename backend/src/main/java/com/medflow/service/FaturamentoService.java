@@ -1,16 +1,16 @@
 package com.medflow.service;
 
 import com.medflow.dto.FaturamentoRelatorioDTO;
-import com.medflow.entity.Pagamento;
+import com.medflow.entity.enums.PagamentoStatus;
 import com.medflow.repository.PagamentoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,40 +18,24 @@ public class FaturamentoService {
 
     private final PagamentoRepository pagamentoRepository;
 
+    @Transactional(readOnly = true)
     public FaturamentoRelatorioDTO gerarRelatorio() {
-        List<Pagamento> todosPagamentos = pagamentoRepository.findAll();
-        
-        FaturamentoRelatorioDTO relatorio = new FaturamentoRelatorioDTO();
-        
         LocalDate hoje = LocalDate.now();
         YearMonth mesAtual = YearMonth.now();
 
-        long pendentes = 0;
-        long recebidos = 0;
-        BigDecimal totalDia = BigDecimal.ZERO;
-        BigDecimal totalMes = BigDecimal.ZERO;
-        BigDecimal totalPendente = BigDecimal.ZERO;
+        LocalDateTime inicioDia = hoje.atStartOfDay();
+        LocalDateTime fimDia = hoje.plusDays(1).atStartOfDay();
 
-        for (Pagamento p : todosPagamentos) {
-            LocalDateTime dataConsulta = p.getConsulta().getDataHora();
-            
-            if (p.getStatus() == com.medflow.entity.enums.PagamentoStatus.PAGO) {
-                recebidos++;
-                
-                if (dataConsulta != null) {
-                    if (dataConsulta.toLocalDate().equals(hoje)) {
-                        totalDia = totalDia.add(p.getValor());
-                    }
-                    if (YearMonth.from(dataConsulta).equals(mesAtual)) {
-                        totalMes = totalMes.add(p.getValor());
-                    }
-                }
-            } else if (p.getStatus() == com.medflow.entity.enums.PagamentoStatus.PENDENTE) {
-                pendentes++;
-                totalPendente = totalPendente.add(p.getValor());
-            }
-        }
+        LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
+        LocalDateTime fimMes = mesAtual.plusMonths(1).atDay(1).atStartOfDay();
 
+        long pendentes = pagamentoRepository.countByStatus(PagamentoStatus.PENDENTE);
+        long recebidos = pagamentoRepository.countByStatus(PagamentoStatus.PAGO);
+        BigDecimal totalDia = pagamentoRepository.somarTotalPagoPeriodo(inicioDia, fimDia);
+        BigDecimal totalMes = pagamentoRepository.somarTotalPagoPeriodo(inicioMes, fimMes);
+        BigDecimal totalPendente = pagamentoRepository.somarTotalPendente();
+
+        FaturamentoRelatorioDTO relatorio = new FaturamentoRelatorioDTO();
         relatorio.setPagamentosPendentesCount(pendentes);
         relatorio.setPagamentosRecebidosCount(recebidos);
         relatorio.setTotalFaturadoDia(totalDia);

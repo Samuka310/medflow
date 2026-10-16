@@ -73,6 +73,14 @@ public class AcessoSecurity {
                 .orElse(false);
     }
 
+    public boolean donoDoUsuario(UUID usuarioId, Authentication auth) {
+        if (!isPaciente(auth)) return true;
+        return pacienteRepository.findByUsuarioId(usuarioId)
+                .filter(p -> p.getUsuario() != null)
+                .map(p -> p.getUsuario().getEmail().equals(auth.getName()))
+                .orElse(false);
+    }
+
     public boolean donoDoProntuario(UUID prontuarioId, Authentication auth) {
         if (isAdmin(auth)) return true;
         if (isPaciente(auth)) {

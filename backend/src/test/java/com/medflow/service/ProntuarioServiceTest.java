@@ -173,9 +173,11 @@ class ProntuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Deve retornar histórico do paciente buscando pelo email sem scan em memória")
+    @DisplayName("Deve retornar histórico do paciente buscando pelo usuarioId sem scan em memória")
     void findMyHistorico_DeveRetornarProntuariosDoPaciente() {
+        UUID usuarioId = UUID.randomUUID();
         Usuario pacienteUser = new Usuario();
+        pacienteUser.setId(usuarioId);
         pacienteUser.setEmail("paciente@medflow.com");
         pacienteUser.setRole(Role.PACIENTE);
 
@@ -184,13 +186,13 @@ class ProntuarioServiceTest {
         paciente.setId(pacienteId);
 
         when(usuarioRepository.findByEmail("paciente@medflow.com")).thenReturn(Optional.of(pacienteUser));
-        when(pacienteRepository.findByUsuarioEmail("paciente@medflow.com")).thenReturn(Optional.of(paciente));
+        when(pacienteRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(paciente));
         when(prontuarioRepository.findByConsultaPacienteId(pacienteId)).thenReturn(java.util.List.of(prontuario));
 
         java.util.List<ProntuarioDTO> historico = prontuarioService.findMyHistorico("paciente@medflow.com");
 
         assertThat(historico).hasSize(1);
-        verify(pacienteRepository).findByUsuarioEmail("paciente@medflow.com");
+        verify(pacienteRepository).findByUsuarioId(usuarioId);
         verify(pacienteRepository, never()).findAll();
     }
 }
